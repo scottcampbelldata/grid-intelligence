@@ -1,0 +1,20 @@
+[Unit]
+Description=Grid Intelligence Platform - ingestion + ML scheduler (APScheduler)
+Documentation=https://github.com/scottcampbelldata/grid-intelligence-platform
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=gridintel
+Group=gridintel
+WorkingDirectory=/home/gridintel/grid-intelligence-platform
+EnvironmentFile=/home/gridintel/grid-intelligence-platform/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m gridintel.cli scheduler
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

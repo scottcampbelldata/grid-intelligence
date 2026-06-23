@@ -1,0 +1,35 @@
+ba_code,ba_name,region,country,timezone
+PJM,PJM Interconnection,Mid-Atlantic,US,America/New_York
+MISO,Midcontinent ISO,Midwest,US,America/Chicago
+ERCO,ERCOT,Texas,US,America/Chicago
+CISO,California ISO,West,US,America/Los_Angeles
+SWPP,Southwest Power Pool,Plains,US,America/Chicago
+NYIS,New York ISO,Northeast,US,America/New_York
+ISNE,ISO New England,Northeast,US,America/New_York
+SOCO,Southern Company,Southeast,US,America/New_York
+TVA,Tennessee Valley Authority,Southeast,US,America/Chicago
+FPL,Florida Power & Light,Southeast,US,America/New_York
+BPAT,Bonneville Power Administration,Northwest,US,America/Los_Angeles
+DUK,Duke Energy Carolinas,Southeast,US,America/New_York
+AECI,Associated Electric Cooperative,Midwest,US,America/Chicago
+PACE,PacifiCorp East,West,US,America/Denver
+PACW,PacifiCorp West,West,US,America/Los_Angeles
+PSCO,Public Service Co of Colorado,West,US,America/Denver
+AZPS,Arizona Public Service,Southwest,US,America/Phoenix
+LDWP,Los Angeles Dept of Water and Power,West,US,America/Los_Angeles
+NEVP,Nevada Power,West,US,America/Los_Angeles
+SRP,Salt River Project,Southwest,US,America/Phoenix
+TEPC,Tucson Electric Power,Southwest,US,America/Phoenix
+IPCO,Idaho Power,West,US,America/Boise
+PSEI,Puget Sound Energy,Northwest,US,America/Los_Angeles
+SCEG,Dominion Energy South Carolina,Southeast,US,America/New_York
+CPLE,Duke Energy Progress East,Southeast,US,America/New_York
+PGE,Portland General Electric,Northwest,US,America/Los_Angeles
+BANC,Balancing Authority of Northern California,West,US,America/Los_Angeles
+SCL,Seattle City Light,Northwest,US,America/Los_Angeles
+NWMT,NorthWestern Energy,Northwest,US,America/Denver
+TEC,Tampa Electric,Southeast,US,America/New_York
+JEA,Jacksonville Electric Authority,Southeast,US,America/New_York
+AVA,Avista,Northwest,US,America/Los_Angeles
+WACM,Western Area Power Rocky Mountain,West,US,America/Denver
+WALC,Western Area Power Lower Colorado,Southwest,US,America/Phoenix

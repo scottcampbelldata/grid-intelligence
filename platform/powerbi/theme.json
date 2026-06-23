@@ -1,0 +1,49 @@
+{
+  "name": "Grid Intelligence Dark",
+  "dataColors": [
+    "#4fa3ff", "#5af0a4", "#ffc55c", "#c9a8ff", "#ff7a7a",
+    "#7ea8ff", "#5ea27a", "#e0a52b", "#1a7373", "#1f6aa5"
+  ],
+  "background": "#0b0e14",
+  "foreground": "#e6e6e6",
+  "tableAccent": "#4fa3ff",
+  "good":   "#5af0a4",
+  "neutral":"#ffc55c",
+  "bad":    "#ff7a7a",
+  "maximum":"#5af0a4",
+  "center": "#ffc55c",
+  "minimum":"#ff7a7a",
+  "null":   "#3a4252",
+
+  "textClasses": {
+    "title":       { "fontFace": "Segoe UI",         "fontSize": 18, "color": "#f7f7f7" },
+    "header":      { "fontFace": "Segoe UI Semibold","fontSize": 13, "color": "#d8d8d8" },
+    "label":       { "fontFace": "Segoe UI",         "fontSize": 11, "color": "#b8c0cc" },
+    "callout":     { "fontFace": "Segoe UI Semibold","fontSize": 28, "color": "#ffffff" }
+  },
+
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background":      [{ "color": { "solid": { "color": "#141923" } }, "transparency": 0 }],
+        "border":          [{ "show": true, "color": { "solid": { "color": "#1f2733" } }, "radius": 8 }],
+        "title":           [{ "fontColor": { "solid": { "color": "#f7f7f7" } }, "fontSize": 13, "fontFamily": "Segoe UI Semibold" }],
+        "labels":          [{ "color": { "solid": { "color": "#b8c0cc" } } }],
+        "categoryAxis":    [{ "labelColor": { "solid": { "color": "#9ba3b3" } }, "gridlineColor": { "solid": { "color": "#1f2733" } } }],
+        "valueAxis":       [{ "labelColor": { "solid": { "color": "#9ba3b3" } }, "gridlineColor": { "solid": { "color": "#1f2733" } } }],
+        "legend":          [{ "labelColor": { "solid": { "color": "#cfd6e0" } } }]
+      }
+    },
+    "card": {
+      "*": {
+        "labels":     [{ "color": { "solid": { "color": "#ffffff" } }, "fontSize": 32 }],
+        "categoryLabels":[{ "color": { "solid": { "color": "#8a93a4" } }, "fontSize": 12 }]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [{ "color": { "solid": { "color": "#0b0e14" } }, "transparency": 0 }]
+      }
+    }
+  }
+}

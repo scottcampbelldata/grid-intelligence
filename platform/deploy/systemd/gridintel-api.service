@@ -1,0 +1,20 @@
+[Unit]
+Description=Grid Intelligence Platform - FastAPI service (uvicorn, localhost only)
+Documentation=https://github.com/scottcampbelldata/grid-intelligence-platform
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=gridintel
+Group=gridintel
+WorkingDirectory=/home/gridintel/grid-intelligence-platform
+EnvironmentFile=/home/gridintel/grid-intelligence-platform/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m uvicorn gridintel.api.main:app --host 127.0.0.1 --port ${GRIDINTEL_API_PORT}
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

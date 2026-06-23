@@ -1,0 +1,11 @@
+fuel_code,fuel_name,is_renewable,is_carbon_free
+BIO,Biomass,True,False
+COL,Coal,False,False
+GEO,Geothermal,True,True
+NG,Natural Gas,False,False
+NUC,Nuclear,False,True
+OIL,Petroleum,False,False
+OTH,Other,False,False
+SUN,Solar,True,True
+WAT,Hydro,True,True
+WND,Wind,True,True

@@ -1,0 +1,14 @@
+gridintel:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '5432') | int }}"
+      user: "{{ env_var('PGUSER', 'grid_app') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      dbname: "{{ env_var('PGDATABASE', 'grid_intel') }}"
+      schema: marts
+      threads: 4
+      keepalives_idle: 0
+      sslmode: prefer
