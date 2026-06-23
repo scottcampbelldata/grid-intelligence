@@ -282,18 +282,22 @@ def forecast_accuracy(
     joined to actual demand (``raw.demand`` series 'D') and scored with MAPE and
     RMSE, both overall and per balancing authority. Lower is better.
     """
-    sarimax_subq = """
+    # Only bind :ba when a BA is requested. Comparing a bind to NULL ("IS NULL")
+    # leaves its type undetermined for Postgres, and ":ba::text" collides with
+    # SQLAlchemy's ":name" bind syntax, so build the filter conditionally.
+    ba_clause = "AND ba_code = :ba" if ba_code else ""
+    sarimax_subq = f"""
         SELECT DISTINCT ON (ba_code, period_utc) ba_code, period_utc, yhat_mwh AS yhat
         FROM ml.demand_forecast
         WHERE period_utc > now() - (:h || ' hours')::interval AND period_utc <= now()
-          AND (:ba::text IS NULL OR ba_code = :ba::text)
+          {ba_clause}
         ORDER BY ba_code, period_utc, fit_at_utc DESC
     """
-    eia_subq = """
+    eia_subq = f"""
         SELECT ba_code, period_utc, value_mwh AS yhat
         FROM raw.demand_forecast
         WHERE source = 'EIA' AND period_utc > now() - (:h || ' hours')::interval
-          AND period_utc <= now() AND (:ba::text IS NULL OR ba_code = :ba::text)
+          AND period_utc <= now() {ba_clause}
     """
     score_tmpl = """
         WITH f AS ({subq})
@@ -320,7 +324,9 @@ def forecast_accuracy(
         per_ba.sort(key=lambda x: (x["mape_pct"] is None, x["mape_pct"] or 0.0))
         return overall, per_ba
 
-    params = {"h": hours, "ba": ba_code}
+    params: dict[str, Any] = {"h": hours}
+    if ba_code:
+        params["ba"] = ba_code
     with get_engine().begin() as conn:
         s_rows = [dict(r) for r in conn.execute(text(score_tmpl.format(subq=sarimax_subq)), params).mappings().all()]
         e_rows = [dict(r) for r in conn.execute(text(score_tmpl.format(subq=eia_subq)), params).mappings().all()]
