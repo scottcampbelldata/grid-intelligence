@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw landings from EIA, ENTSO-E, NOAA ingestion."
+    schema: raw
+    tables:
+      - name: balancing_authority
+      - name: fuel_type
+      - name: weather_station
+      - name: demand
+        description: "Hourly demand (D), net generation (NG), total interchange (TI) per BA, source=EIA."
+        loaded_at_field: inserted_at
+        freshness:
+          warn_after: { count: 6,  period: hour }
+          error_after: { count: 24, period: hour }
+        columns:
+          - name: period_utc
+            tests: [not_null]
+          - name: ba_code
+            tests: [not_null]
+      - name: demand_forecast
+      - name: generation
+        description: "Hourly net generation by BA × fuel type, source=EIA."
+        loaded_at_field: inserted_at
+        freshness:
+          warn_after: { count: 6,  period: hour }
+          error_after: { count: 24, period: hour }
+      - name: interchange
+        description: "Hourly net interchange between BA pairs, source=EIA."
+      - name: entsoe_load
+      - name: entsoe_generation
+      - name: weather
+
+  - name: ops
+    schema: ops
+    tables:
+      - name: ingest_run
+      - name: source_freshness
+
+  - name: ml
+    schema: ml
+    tables:
+      - name: demand_forecast
+      - name: demand_anomaly

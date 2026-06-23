@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect } from "react";
+import { HBarChart, type HBarDatum } from "@/components/HBarChart";
+import { KpiCard } from "@/components/KpiCard";
+import { KpiRow } from "@/components/KpiRow";
+import { Panel } from "@/components/Panel";
+import { StackedAreaChart } from "@/components/StackedAreaChart";
+import { getEurope } from "@/lib/api";
+import { formatEnergy, formatInt, formatPower } from "@/lib/format";
+import type { TabMeta } from "@/lib/types";
+import { usePolling } from "@/lib/useGridData";
+
+export function EuropeTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
+  const { data, error, lastUpdated, refresh } = usePolling(
+    (signal) => getEurope(24, signal),
+    60_000,
+  );
+  useEffect(() => {
+    onMeta({ lastUpdated, error });
+  }, [lastUpdated, error, onMeta]);
+
+  const loaded = lastUpdated !== null;
+  const hasData = (data?.series.length ?? 0) > 0;
+  const isEmpty = loaded && !error && !hasData;
+
+  const total = formatEnergy(data?.totalMwh ?? null);
+  const peak = formatPower(data?.peakTotalMw ?? null);
+  const largest = data?.zones[0] ?? null;
+  const largestGw = formatPower(largest?.avgMw ?? null);
+
+  const zoneBars: HBarDatum[] = (data?.zones ?? [])
+    .slice(0, 10)
+    .map((z) => ({ label: z.name, value: z.avgMw / 1_000 }));
+
+  return (
+    <>
+      {error && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-md border border-border bg-surface px-5 py-3 text-sm">
+          <span className="text-muted">Couldn&apos;t reach the API - {error}</span>
+          <button
+            type="button"
+            onClick={refresh}
+            className="text-accent transition-opacity hover:opacity-80"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      <KpiRow>
+        <KpiCard
+          label="Total load, 24h"
+          value={total.value}
+          unit={total.unit}
+          sub={data ? `${data.zones.length} bidding zones` : ""}
+          loading={!loaded}
+        />
+        <KpiCard
+          label="Zones tracked"
+          value={loaded ? formatInt(data?.zones.length ?? 0) : "-"}
+          sub="ENTSO-E bidding zones"
+          loading={!loaded}
+        />
+        <KpiCard
+          label="Largest zone"
+          value={largestGw.value}
+          unit={largestGw.unit}
+          sub={largest ? largest.name : ""}
+          loading={!loaded}
+        />
+        <KpiCard
+          label="Peak load"
+          value={peak.value}
+          unit={peak.unit}
+          sub="Across all zones"
+          loading={!loaded}
+        />
+      </KpiRow>
+
+      {isEmpty ? (
+        <div className="mt-6">
+          <Panel title="European load by bidding zone, last 24 hours">
+            <div className="flex h-[320px] items-center justify-center text-sm text-muted">
+              No ENTSO-E load data in the last 24 hours.
+            </div>
+          </Panel>
+        </div>
+      ) : (
+        <>
+          <div className="mt-6">
+            <Panel
+              title="European load by bidding zone, last 24 hours"
+              right={<span>GW · top 6 zones + other</span>}
+            >
+              {hasData ? (
+                <StackedAreaChart series={data!.series} bands={data!.bands} />
+              ) : (
+                <div className="flex h-[320px] items-center justify-center text-sm text-muted">
+                  Loading…
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          <div className="mt-6">
+            <Panel title="Load by bidding zone, last 24 hours" right={<span>Average GW</span>}>
+              {zoneBars.length > 0 ? (
+                <HBarChart data={zoneBars} maxBars={10} decimals={1} unit="GW" labelWidth={130} />
+              ) : (
+                <div className="flex h-[280px] items-center justify-center text-sm text-muted">
+                  Loading…
+                </div>
+              )}
+            </Panel>
+          </div>
+        </>
+      )}
+    </>
+  );
+}

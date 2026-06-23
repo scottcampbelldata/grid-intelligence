@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-bg font-sans text-text;
+    /* tabular figures everywhere by default - terminal numerals */
+    font-feature-settings: "tnum" 1;
+  }
+
+  ::selection {
+    background: rgba(79, 139, 245, 0.25);
+  }
+
+  /* Restrained scrollbars to match the dark shell */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #23262d transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #23262d;
+    border-radius: 9999px;
+  }
+}

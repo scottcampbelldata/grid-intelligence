@@ -1,0 +1,46 @@
+name: 'gridintel'
+version: '0.1.0'
+config-version: 2
+
+profile: 'gridintel'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  gridintel:
+    +persist_docs:
+      relation: true
+      columns: true
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  gridintel:
+    +schema: marts
+    fuel_type_meta:
+      +column_types:
+        fuel_code: text
+        fuel_name: text
+        category:  text
+        is_renewable: boolean
+        is_carbon_free: boolean
+
+vars:
+  recent_hours: 72

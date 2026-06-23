@@ -1,0 +1,29 @@
+{
+  "name": "grid-intelligence-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:check": "node scripts/build-check.mjs",
+    "start": "next start",
+    "clean": "node -e \"for (const d of ['.next','.next-check','out']) require('fs').rmSync(d,{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-simple-maps": "^3.0.0",
+    "recharts": "2.13.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@types/react-simple-maps": "^3.0.6",
+    "autoprefixer": "10.4.20",
+    "postcss": "8.5.10",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.6.3"
+  }
+}

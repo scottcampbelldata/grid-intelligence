@@ -1,0 +1,35 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/.next-check/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local debug / verification artifacts (Playwright MCP output + screenshots) -
+# not part of the app. /*.png is root-anchored, so real assets in public/ and
+# src/ are unaffected.
+.playwright-mcp/
+/*.png

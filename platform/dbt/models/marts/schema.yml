@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: fct_demand_hourly
+    description: "Per-BA hourly realised demand vs forecast, with absolute error %."
+    columns:
+      - name: period_utc
+        tests: [not_null]
+      - name: ba_code
+        tests: [not_null]
+      - name: demand_mwh
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 OR demand_mwh IS NULL"
+
+  - name: fct_generation_hourly
+    description: "Per-BA per-fuel hourly net generation, enriched with carbon flags."
+    columns:
+      - name: period_utc
+        tests: [not_null]
+      - name: ba_code
+        tests: [not_null]
+      - name: fuel_code
+        tests: [not_null]
+
+  - name: fct_interchange_hourly
+    columns:
+      - name: period_utc
+        tests: [not_null]
+      - name: from_ba
+        tests: [not_null]
+      - name: to_ba
+        tests: [not_null]
+
+  - name: agg_demand_recent
+    description: "Last-72h demand summary per BA. Powers the dashboard KPIs."
+    columns:
+      - name: ba_code
+        tests: [unique, not_null]
+
+  - name: agg_generation_mix_recent
+    columns:
+      - name: ba_code
+        tests: [not_null]
+      - name: fuel_code
+        tests: [not_null]
+
+  - name: agg_renewable_share_network
+    columns:
+      - name: period_utc
+        tests: [unique, not_null]
+
+  - name: dim_balancing_authority
+    columns:
+      - name: ba_code
+        tests: [unique, not_null]
+      - name: ba_sk
+        tests: [unique, not_null]
+
+exposures:
+  - name: web_dashboard
+    type: dashboard
+    maturity: high
+    url: https://grid.scottcampbell.io
+    description: "Real-time grid intelligence dashboard (React frontend on Cloudflare Pages + FastAPI)"
+    owner:
+      name: Grid Intelligence
+      email: owner@example.com
+    depends_on:
+      - ref('agg_demand_recent')
+      - ref('agg_generation_mix_recent')
+      - ref('agg_renewable_share_network')
+      - ref('dim_balancing_authority')
+      - ref('fct_interchange_hourly')

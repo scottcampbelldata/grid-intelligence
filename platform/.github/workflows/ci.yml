@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch: {}
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Official TimescaleDB image - Postgres 17 with the extension pre-loaded
+        # (shared_preload_libraries='timescaledb' is set in the image entrypoint).
+        # Gives CI an end-to-end test against the same warehouse stack as prod.
+        image: timescale/timescaledb:latest-pg17
+        env:
+          POSTGRES_USER: grid_app
+          POSTGRES_PASSWORD: grid_app
+          POSTGRES_DB: grid_intel
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U grid_app -d grid_intel"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: grid_intel
+      PGUSER: grid_app
+      PGPASSWORD: grid_app
+      EIA_API_KEY: dummy
+      ENTSOE_API_KEY: dummy
+      NOAA_USER_AGENT: gridintel-ci (ci@example.com)
+      DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check gridintel tests scripts dashboard
+
+      - name: Type-check (mypy, soft)
+        run: mypy gridintel --ignore-missing-imports || true
+
+      - name: Apply schema
+        run: |
+          python -m gridintel.cli init-db
+
+      - name: Seed demo + dbt build + dbt tests
+        run: |
+          python -m gridintel.cli seed-demo --days 3
+          (cd dbt && dbt deps && dbt build)
+
+      - name: Run ML jobs against demo data
+        run: |
+          python -m gridintel.cli ml anomaly
+          python -m gridintel.cli ml forecast
+
+      - name: Pytest
+        run: pytest -q tests

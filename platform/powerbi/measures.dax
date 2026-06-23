@@ -1,0 +1,201 @@
+// =============================================================================
+// Reusable DAX measures for the Grid Intelligence Platform Power BI report.
+// Paste into a measures table (Modeling > New measure), or import via
+// Tabular Editor as a script.
+// =============================================================================
+
+
+// -------- Demand --------------------------------------------------------------
+
+Demand (MWh, period) =
+SUM ( mart_demand_hourly[demand_mwh] )
+
+Demand (GWh, period) =
+DIVIDE ( [Demand (MWh, period)], 1000 )
+
+Demand (Last Hour, MWh) =
+CALCULATE (
+    SUM ( mart_demand_hourly[demand_mwh] ),
+    mart_demand_hourly[period_utc] =
+        MAX ( mart_demand_hourly[period_utc] )
+)
+
+Demand Δ vs 24h Ago % =
+VAR _now =
+    CALCULATE (
+        SUM ( mart_demand_hourly[demand_mwh] ),
+        mart_demand_hourly[period_utc] = MAX ( mart_demand_hourly[period_utc] )
+    )
+VAR _yday =
+    CALCULATE (
+        SUM ( mart_demand_hourly[demand_mwh] ),
+        mart_demand_hourly[period_utc] = MAX ( mart_demand_hourly[period_utc] ) - 1 -- day offset
+    )
+RETURN
+    DIVIDE ( _now - _yday, _yday ) * 100
+
+
+// -------- Forecast accuracy --------------------------------------------------
+
+Forecast MAPE % =
+AVERAGE ( mart_demand_hourly[abs_forecast_error_pct] )
+
+Forecast Accuracy % =
+100 - [Forecast MAPE %]
+
+Forecast Bias (MWh) =
+AVERAGE ( mart_demand_hourly[forecast_error_mwh] )
+
+
+// -------- Generation mix -----------------------------------------------------
+
+Generation (MWh) =
+SUM ( mart_generation_hourly[generation_mwh] )
+
+Renewable Generation (MWh) =
+CALCULATE (
+    [Generation (MWh)],
+    mart_generation_hourly[is_renewable] = TRUE ()
+)
+
+Carbon-Free Generation (MWh) =
+CALCULATE (
+    [Generation (MWh)],
+    mart_generation_hourly[is_carbon_free] = TRUE ()
+)
+
+Renewable Share % =
+DIVIDE ( [Renewable Generation (MWh)], [Generation (MWh)] ) * 100
+
+Carbon-Free Share % =
+DIVIDE ( [Carbon-Free Generation (MWh)], [Generation (MWh)] ) * 100
+
+Top Fuel by MWh =
+VAR _t =
+    TOPN (
+        1,
+        SUMMARIZE (
+            mart_generation_hourly,
+            mart_generation_hourly[fuel_name],
+            "MWh", [Generation (MWh)]
+        ),
+        [MWh],
+        DESC
+    )
+RETURN
+    CONCATENATEX (
+        _t,
+        mart_generation_hourly[fuel_name] & " (" & FORMAT ( [MWh] / 1000, "#,##0.0" ) & " GWh)",
+        UNICHAR ( 10 )
+    )
+
+
+// -------- Anomalies ---------------------------------------------------------
+
+Anomalies (Flagged) =
+CALCULATE (
+    COUNTROWS ( mart_anomalies ),
+    mart_anomalies[is_anomaly] = TRUE ()
+)
+
+Critical Anomalies =
+CALCULATE (
+    COUNTROWS ( mart_anomalies ),
+    mart_anomalies[severity] = "critical"
+)
+
+Anomaly Rate % =
+DIVIDE (
+    [Anomalies (Flagged)],
+    COUNTROWS ( mart_anomalies )
+) * 100
+
+Max |z-score| =
+MAXX ( mart_anomalies, ABS ( mart_anomalies[z_score] ) )
+
+
+// -------- Pipeline health ---------------------------------------------------
+
+Freshness Lag (min) =
+MAX ( mart_source_freshness[minutes_since_fetch] )
+
+Worst-Stale Source =
+VAR _t =
+    TOPN (
+        1,
+        ALL ( mart_source_freshness[source], mart_source_freshness[minutes_since_fetch] ),
+        mart_source_freshness[minutes_since_fetch],
+        DESC
+    )
+RETURN
+    CONCATENATEX (
+        _t,
+        mart_source_freshness[source] & " (" &
+            FORMAT ( mart_source_freshness[minutes_since_fetch], "0" ) & " min)"
+    )
+
+Ingest Successes (24h) =
+CALCULATE (
+    COUNTROWS ( mart_ingest_runs ),
+    mart_ingest_runs[status] = "ok",
+    mart_ingest_runs[started_at] >= NOW () - 1   -- last day
+)
+
+Ingest Errors (24h) =
+CALCULATE (
+    COUNTROWS ( mart_ingest_runs ),
+    mart_ingest_runs[status] = "error",
+    mart_ingest_runs[started_at] >= NOW () - 1
+)
+
+
+// -------- Conditional formatting helpers ------------------------------------
+
+Demand Sparkline Color =
+IF (
+    [Forecast MAPE %] < 5,
+    "#5af0a4",     -- green: model is accurate
+    IF (
+        [Forecast MAPE %] < 12,
+        "#ffc55c", -- amber: drift
+        "#ff7a7a"  -- red:   chase the forecast
+    )
+)
+
+Anomaly Severity Color =
+SWITCH (
+    SELECTEDVALUE ( mart_anomalies[severity] ),
+    "critical", "#ff7a7a",
+    "warn",     "#ffc55c",
+    "info",     "#6bb3ff",
+    "#7e8696"
+)
+
+
+// -------- Card-friendly text measures ---------------------------------------
+
+BA with Highest Demand (24h) =
+VAR _t =
+    TOPN (
+        1,
+        SUMMARIZE (
+            FILTER (
+                mart_demand_hourly,
+                mart_demand_hourly[period_utc] >= NOW () - 1
+            ),
+            mart_demand_hourly[ba_code],
+            "MWh", [Demand (MWh, period)]
+        ),
+        [MWh],
+        DESC
+    )
+RETURN
+    CONCATENATEX (
+        _t,
+        mart_demand_hourly[ba_code] & " (" & FORMAT ( [MWh] / 1000, "#,##0.0" ) & " GWh)"
+    )
+
+Network Headline =
+"Network demand: " & FORMAT ( [Demand (Last Hour, MWh)] / 1000, "#,##0.0" ) & " GWh"
+    & "  ·  " & FORMAT ( [Demand Δ vs 24h Ago %], "+0.0;-0.0" ) & "% vs 24h ago"
+    & "  ·  " & FORMAT ( [Renewable Share %], "0.0" ) & "% renewable"
