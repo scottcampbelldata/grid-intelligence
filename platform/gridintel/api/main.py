@@ -29,6 +29,26 @@ app.add_middleware(
 )
 
 
+def _f(v: Any) -> float | None:
+    """Coerce a DB numeric (float / Decimal / None) to float or None."""
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _pct_status(pct: float, warn: float, fail: float) -> str:
+    """pass / warn / fail from a signed percentage and absolute thresholds."""
+    a = abs(pct)
+    if a > fail:
+        return "fail"
+    if a > warn:
+        return "warn"
+    return "pass"
+
+
 # ---------------------------------------------------------------------------
 # Health / freshness
 # ---------------------------------------------------------------------------
@@ -226,6 +246,77 @@ def anomalies_recent(hours: int = Query(default=48, ge=1, le=168)) -> list[dict[
 # ---------------------------------------------------------------------------
 # Forecast
 # ---------------------------------------------------------------------------
+# NOTE: this static route MUST be declared before "/v1/forecast/{ba_code}",
+# otherwise FastAPI matches "accuracy" as a ba_code path parameter.
+@app.get("/v1/forecast/accuracy")
+def forecast_accuracy(
+    hours: int = Query(default=168, ge=1, le=720),
+    ba_code: str | None = None,
+) -> dict[str, Any]:
+    """Out-of-sample accuracy of our SARIMAX vs EIA's day-ahead forecast.
+
+    For each source, realized forecast hours within the trailing window are
+    joined to actual demand (``raw.demand`` series 'D') and scored with MAPE and
+    RMSE, both overall and per balancing authority. Lower is better.
+    """
+    sarimax_subq = """
+        SELECT DISTINCT ON (ba_code, period_utc) ba_code, period_utc, yhat_mwh AS yhat
+        FROM ml.demand_forecast
+        WHERE period_utc > now() - (:h || ' hours')::interval AND period_utc <= now()
+          AND (:ba IS NULL OR ba_code = :ba)
+        ORDER BY ba_code, period_utc, fit_at_utc DESC
+    """
+    eia_subq = """
+        SELECT ba_code, period_utc, value_mwh AS yhat
+        FROM raw.demand_forecast
+        WHERE source = 'EIA' AND period_utc > now() - (:h || ' hours')::interval
+          AND period_utc <= now() AND (:ba IS NULL OR ba_code = :ba)
+    """
+    score_tmpl = """
+        WITH f AS ({subq})
+        SELECT f.ba_code AS ba_code,
+               count(*) AS pairs,
+               avg(abs(a.value_mwh - f.yhat) / NULLIF(a.value_mwh, 0)) * 100 AS mape_pct,
+               sqrt(avg(power(a.value_mwh - f.yhat, 2))) AS rmse_mwh
+        FROM f
+        JOIN raw.demand a
+          ON a.ba_code = f.ba_code AND a.period_utc = f.period_utc AND a.series = 'D'
+        WHERE a.value_mwh IS NOT NULL AND f.yhat IS NOT NULL
+        GROUP BY GROUPING SETS ((), (f.ba_code))
+    """
+
+    def parse(rows: list[dict[str, Any]]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        overall = {"pairs": 0, "mape_pct": None, "rmse_mwh": None}
+        per_ba: list[dict[str, Any]] = []
+        for r in rows:
+            rec = {"pairs": int(r["pairs"] or 0), "mape_pct": _f(r["mape_pct"]), "rmse_mwh": _f(r["rmse_mwh"])}
+            if r["ba_code"] is None:
+                overall = rec
+            else:
+                per_ba.append({"ba_code": r["ba_code"], **rec})
+        per_ba.sort(key=lambda x: (x["mape_pct"] is None, x["mape_pct"] or 0.0))
+        return overall, per_ba
+
+    params = {"h": hours, "ba": ba_code}
+    with get_engine().begin() as conn:
+        s_rows = [dict(r) for r in conn.execute(text(score_tmpl.format(subq=sarimax_subq)), params).mappings().all()]
+        e_rows = [dict(r) for r in conn.execute(text(score_tmpl.format(subq=eia_subq)), params).mappings().all()]
+    s_overall, s_per = parse(s_rows)
+    e_overall, e_per = parse(e_rows)
+    return {
+        "window": {"hours": hours},
+        "ba_code": ba_code,
+        "metric_notes": (
+            "MAPE and RMSE over realized forecast hours in the trailing window, "
+            "joined to actual demand (EIA series D). Lower is better."
+        ),
+        "sources": [
+            {"source": "sarimax", **s_overall, "per_ba": s_per},
+            {"source": "eia_day_ahead", **e_overall, "per_ba": e_per},
+        ],
+    }
+
+
 @app.get("/v1/forecast/{ba_code}")
 def forecast_for(ba_code: str) -> dict[str, Any]:
     with get_engine().begin() as conn:
@@ -316,3 +407,170 @@ def europe_load(hours: int = Query(default=24, ge=1, le=168)) -> list[dict[str, 
             GROUP BY 1, 2 ORDER BY 1
         """), {"h": hours}).mappings().all()
     return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Data quality / validation
+# ---------------------------------------------------------------------------
+@app.get("/v1/validation")
+def validation() -> dict[str, Any]:
+    """Data-quality checks across the ingested grid data.
+
+    Each check carries a pass/warn/fail status plus either per-BA detail rows
+    (energy balance, fuel-mix reconciliation) or count rollups (freshness,
+    demand plausibility). All windows are the last 24h. Strings are plain ASCII
+    so the frontend renders them verbatim.
+    """
+    checks: list[dict[str, Any]] = []
+    with get_engine().begin() as conn:
+        as_of = conn.execute(
+            text("SELECT max(period_utc) FROM raw.demand WHERE series = 'D'")
+        ).scalar()
+
+        # 1. Freshness - are all ingestion sources within their staleness SLA?
+        fr = conn.execute(text("""
+            SELECT source,
+                   EXTRACT(EPOCH FROM (now() - last_fetch_utc))  AS ssf,
+                   EXTRACT(EPOCH FROM (now() - last_period_utc)) AS ssp
+            FROM ops.source_freshness
+        """)).mappings().all()
+        total_src = len(fr)
+        stale = sum(
+            1 for r in fr
+            if evaluate_staleness(r["source"], _f(r["ssf"]), _f(r["ssp"]))[0]
+        )
+        fresh = total_src - stale
+        checks.append({
+            "name": "freshness",
+            "status": "pass" if stale == 0 else ("fail" if total_src and stale == total_src else "warn"),
+            "value": f"{fresh} of {total_src} sources fresh",
+            "threshold": "all sources within their staleness SLA",
+            "unit": "",
+            "explanation": (
+                "Every ingestion source must have fetched recently and carry a "
+                "recent data period (per-source SLA)."
+            ),
+            "counts": {"sources": total_src, "fresh": fresh, "stale": stale},
+            "details": [],
+        })
+
+        # 2. Demand plausibility - present and strictly positive (last 24h).
+        dp = dict(conn.execute(text("""
+            SELECT count(*)                                  AS observations,
+                   count(*) FILTER (WHERE value_mwh IS NULL) AS nulls,
+                   count(*) FILTER (WHERE value_mwh <= 0)    AS non_positive,
+                   count(DISTINCT ba_code)                   AS bas
+            FROM raw.demand
+            WHERE series = 'D' AND period_utc > now() - interval '24 hours'
+        """)).mappings().first() or {})
+        obs = int(dp.get("observations") or 0)
+        nulls = int(dp.get("nulls") or 0)
+        nonpos = int(dp.get("non_positive") or 0)
+        checks.append({
+            "name": "demand_plausibility",
+            "status": "fail" if nonpos > 0 else ("warn" if nulls > 0 else "pass"),
+            "value": f"{obs} demand observations, {nulls} null, {nonpos} non-positive",
+            "threshold": "0 null, 0 non-positive",
+            "unit": "",
+            "explanation": (
+                "Hourly demand in the last 24h should be present and strictly "
+                "positive for every balancing authority."
+            ),
+            "counts": {"observations": obs, "nulls": nulls, "non_positive": nonpos, "bas": int(dp.get("bas") or 0)},
+            "details": [],
+        })
+
+        # 3. Energy balance per BA (last 24h): EIA identity demand = NG - TI.
+        eb = conn.execute(text("""
+            SELECT ba_code,
+                   sum(value_mwh) FILTER (WHERE series = 'D')  AS demand_mwh,
+                   sum(value_mwh) FILTER (WHERE series = 'NG') AS net_generation_mwh,
+                   sum(value_mwh) FILTER (WHERE series = 'TI') AS total_interchange_mwh
+            FROM raw.demand
+            WHERE series IN ('D', 'NG', 'TI') AND period_utc > now() - interval '24 hours'
+            GROUP BY ba_code
+            HAVING sum(value_mwh) FILTER (WHERE series = 'D')  IS NOT NULL
+               AND sum(value_mwh) FILTER (WHERE series = 'NG') IS NOT NULL
+               AND sum(value_mwh) FILTER (WHERE series = 'TI') IS NOT NULL
+            ORDER BY ba_code
+        """)).mappings().all()
+        eb_details: list[dict[str, Any]] = []
+        for r in eb:
+            d, ng, ti = _f(r["demand_mwh"]), _f(r["net_generation_mwh"]), _f(r["total_interchange_mwh"])
+            if d is None or ng is None or ti is None or d == 0:
+                continue
+            residual = ng - ti - d
+            pct = residual / d * 100
+            eb_details.append({
+                "ba_code": r["ba_code"], "status": _pct_status(pct, 5, 15),
+                "demand_mwh": round(d, 1), "net_generation_mwh": round(ng, 1),
+                "total_interchange_mwh": round(ti, 1), "residual_mwh": round(residual, 1),
+                "residual_pct": round(pct, 2),
+            })
+        eb_flagged = [x for x in eb_details if x["status"] != "pass"]
+        checks.append({
+            "name": "energy_balance",
+            "status": "fail" if any(x["status"] == "fail" for x in eb_details) else ("warn" if eb_flagged else "pass"),
+            "value": f"{len(eb_flagged)} of {len(eb_details)} BAs outside +/-5%",
+            "threshold": "+/-5% warn, +/-15% fail",
+            "unit": "%",
+            "explanation": (
+                "EIA identity: demand = net generation - total interchange. "
+                "Residual = net generation - total interchange - demand, as a "
+                "percent of demand (summed over the last 24h)."
+            ),
+            "counts": {},
+            "details": eb_details,
+        })
+
+        # 4. Fuel-mix reconciliation per BA (last 24h): sum of fuel-level
+        #    generation vs reported net generation (series 'NG').
+        fs = conn.execute(text("""
+            WITH ng AS (
+                SELECT ba_code, sum(value_mwh) AS net_generation_mwh
+                FROM raw.demand
+                WHERE series = 'NG' AND period_utc > now() - interval '24 hours'
+                GROUP BY ba_code
+            ),
+            fuel AS (
+                SELECT ba_code, sum(value_mwh) AS fuel_sum_mwh
+                FROM raw.generation
+                WHERE period_utc > now() - interval '24 hours'
+                GROUP BY ba_code
+            )
+            SELECT ng.ba_code, ng.net_generation_mwh, fuel.fuel_sum_mwh
+            FROM ng JOIN fuel ON fuel.ba_code = ng.ba_code
+            ORDER BY ng.ba_code
+        """)).mappings().all()
+        fs_details: list[dict[str, Any]] = []
+        for r in fs:
+            ng, fsum = _f(r["net_generation_mwh"]), _f(r["fuel_sum_mwh"])
+            if ng is None or fsum is None or ng == 0:
+                continue
+            residual = fsum - ng
+            pct = residual / ng * 100
+            fs_details.append({
+                "ba_code": r["ba_code"], "status": _pct_status(pct, 5, 15),
+                "fuel_sum_mwh": round(fsum, 1), "net_generation_mwh": round(ng, 1),
+                "residual_mwh": round(residual, 1), "residual_pct": round(pct, 2),
+            })
+        fs_flagged = [x for x in fs_details if x["status"] != "pass"]
+        checks.append({
+            "name": "fuel_shares",
+            "status": "fail" if any(x["status"] == "fail" for x in fs_details) else ("warn" if fs_flagged else "pass"),
+            "value": f"{len(fs_flagged)} of {len(fs_details)} BAs outside +/-5%",
+            "threshold": "+/-5% warn, +/-15% fail",
+            "unit": "%",
+            "explanation": (
+                "Sum of fuel-level generation should reconcile with reported net "
+                "generation per BA. Residual = fuel sum - net generation, as a "
+                "percent (summed over the last 24h)."
+            ),
+            "counts": {},
+            "details": fs_details,
+        })
+
+    summary = {"pass": 0, "warn": 0, "fail": 0}
+    for c in checks:
+        summary[c["status"]] = summary.get(c["status"], 0) + 1
+    return {"as_of_utc": as_of, "summary": summary, "checks": checks}

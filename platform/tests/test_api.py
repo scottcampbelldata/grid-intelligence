@@ -17,12 +17,21 @@ def test_app_routes_registered():
         "/v1/generation/share",
         "/v1/interchange/flows",
         "/v1/anomalies/recent",
+        "/v1/forecast/accuracy",
         "/v1/forecast/{ba_code}",
         "/v1/weather/latest",
         "/v1/europe/load",
         "/v1/europe/weather",
+        "/v1/validation",
     ):
         assert must in paths, f"missing route {must}"
+
+
+def test_forecast_accuracy_declared_before_ba_param():
+    """The static /v1/forecast/accuracy route must out-rank the {ba_code} param
+    route, else 'accuracy' is captured as a path parameter."""
+    ordered = [r.path for r in app.routes if getattr(r, "path", "").startswith("/v1/forecast")]
+    assert ordered.index("/v1/forecast/accuracy") < ordered.index("/v1/forecast/{ba_code}")
 
 
 def test_openapi_schema_includes_all_endpoints():
