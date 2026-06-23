@@ -39,10 +39,11 @@ def _f(v: Any) -> float | None:
         return None
 
 
-# Reconciliation checks compare independent, differently-lagged feeds. They need
-# a few aligned hours to be meaningful - a single overlapping hour is feed-timing
-# noise, not a data-quality signal - and a gap is advisory (warn), never a fail.
-MIN_OVERLAP_HOURS = 3
+# Reconciliation checks compare independent feeds (energy balance is an EIA
+# identity that holds per hour; fuel-mix is cross-feed). A gap is advisory: they
+# warn, never fail. Require at least one aligned hour so a BA with no overlapping
+# data is skipped rather than reported as a spurious zero.
+MIN_OVERLAP_HOURS = 1
 RECON_WARN_PCT = 10.0
 
 
@@ -540,7 +541,7 @@ def validation() -> dict[str, Any]:
             "name": "energy_balance",
             "status": eb_status,
             "value": eb_value,
-            "threshold": f"advisory; warn if a BA is beyond +/-{RECON_WARN_PCT:.0f}% across >= {MIN_OVERLAP_HOURS} aligned hours (never fails)",
+            "threshold": f"advisory; warns at +/-{RECON_WARN_PCT:.0f}% per BA over aligned hours, never fails",
             "unit": "%",
             "explanation": (
                 "EIA identity: demand = net generation - total interchange. "
@@ -599,7 +600,7 @@ def validation() -> dict[str, Any]:
             "name": "fuel_shares",
             "status": fs_status,
             "value": fs_value,
-            "threshold": f"advisory; warn if a BA is beyond +/-{RECON_WARN_PCT:.0f}% across >= {MIN_OVERLAP_HOURS} aligned hours (never fails)",
+            "threshold": f"advisory; warns at +/-{RECON_WARN_PCT:.0f}% per BA over aligned hours, never fails",
             "unit": "%",
             "explanation": (
                 "Sum of fuel-level generation should reconcile with reported net "
