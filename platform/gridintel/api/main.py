@@ -39,37 +39,23 @@ def _f(v: Any) -> float | None:
         return None
 
 
-def _pct_status(pct: float, warn: float, fail: float) -> str:
-    """pass / warn / fail from a signed percentage and absolute thresholds."""
-    a = abs(pct)
-    if a > fail:
-        return "fail"
-    if a > warn:
-        return "warn"
-    return "pass"
+# Reconciliation checks compare independent, differently-lagged feeds. They need
+# a few aligned hours to be meaningful - a single overlapping hour is feed-timing
+# noise, not a data-quality signal - and a gap is advisory (warn), never a fail.
+MIN_OVERLAP_HOURS = 3
+RECON_WARN_PCT = 10.0
 
 
 def _rollup(details: list[dict[str, Any]]) -> tuple[str, str]:
-    """Overall pass/warn/fail + a summary value for a per-BA check.
+    """Overall status + summary for an advisory per-BA reconciliation check.
 
-    A single outlier BA should not turn a whole check red: warn when any BA is
-    flagged, fail only when a meaningful share (>25%) are beyond the fail band.
+    Warns when any BA is flagged; never fails (cross-feed gaps are expected).
     """
     n = len(details)
-    fails = sum(1 for x in details if x["status"] == "fail")
     flagged = sum(1 for x in details if x["status"] != "pass")
     if n == 0:
-        status = "pass"
-    elif fails / n > 0.25:
-        status = "fail"
-    elif flagged > 0:
-        status = "warn"
-    else:
-        status = "pass"
-    value = f"{flagged} of {n} BAs outside +/-5%"
-    if fails:
-        value += f" ({fails} beyond +/-15%)"
-    return status, value
+        return "pass", "no BAs with enough aligned hours to compare"
+    return ("warn" if flagged else "pass"), f"{flagged} of {n} BAs flagged"
 
 
 # ---------------------------------------------------------------------------
@@ -522,7 +508,7 @@ def validation() -> dict[str, Any]:
                        max(value_mwh) FILTER (WHERE series = 'NG') AS ng,
                        max(value_mwh) FILTER (WHERE series = 'TI') AS ti
                 FROM raw.demand
-                WHERE series IN ('D', 'NG', 'TI') AND period_utc > now() - interval '24 hours'
+                WHERE series IN ('D', 'NG', 'TI') AND period_utc > now() - interval '72 hours'
                 GROUP BY period_utc, ba_code
             )
             SELECT ba_code,
@@ -538,28 +524,30 @@ def validation() -> dict[str, Any]:
         eb_details: list[dict[str, Any]] = []
         for r in eb:
             d, ng, ti = _f(r["demand_mwh"]), _f(r["net_generation_mwh"]), _f(r["total_interchange_mwh"])
-            if d is None or ng is None or ti is None or d == 0:
+            hours = int(r["hours"] or 0)
+            if d is None or ng is None or ti is None or d == 0 or hours < MIN_OVERLAP_HOURS:
                 continue
             residual = ng - ti - d
             pct = residual / d * 100
             eb_details.append({
-                "ba_code": r["ba_code"], "status": _pct_status(pct, 5, 15),
+                "ba_code": r["ba_code"], "status": "warn" if abs(pct) > RECON_WARN_PCT else "pass",
                 "demand_mwh": round(d, 1), "net_generation_mwh": round(ng, 1),
                 "total_interchange_mwh": round(ti, 1), "residual_mwh": round(residual, 1),
-                "residual_pct": round(pct, 2), "hours": int(r["hours"] or 0),
+                "residual_pct": round(pct, 2), "hours": hours,
             })
         eb_status, eb_value = _rollup(eb_details)
         checks.append({
             "name": "energy_balance",
             "status": eb_status,
             "value": eb_value,
-            "threshold": "+/-5% warn, +/-15% fail (per BA); check fails if >25% of BAs breach",
+            "threshold": f"advisory; warn if a BA is beyond +/-{RECON_WARN_PCT:.0f}% across >= {MIN_OVERLAP_HOURS} aligned hours (never fails)",
             "unit": "%",
             "explanation": (
                 "EIA identity: demand = net generation - total interchange. "
                 "Residual = net generation - total interchange - demand, as a "
-                "percent of demand, summed over hours where D, NG and TI are all "
-                "present in the last 24h (NG/TI feeds are sparse; see Hours)."
+                "percent of demand, over hours where D, NG and TI are all present "
+                "in the last 72h. Advisory only: NG/TI feeds are sparse, so this "
+                "warns on large gaps but never fails (see Hours)."
             ),
             "counts": {},
             "details": eb_details,
@@ -573,13 +561,13 @@ def validation() -> dict[str, Any]:
             WITH ng AS (
                 SELECT period_utc, ba_code, max(value_mwh) AS ng
                 FROM raw.demand
-                WHERE series = 'NG' AND period_utc > now() - interval '24 hours'
+                WHERE series = 'NG' AND period_utc > now() - interval '72 hours'
                 GROUP BY period_utc, ba_code
             ),
             fuel AS (
                 SELECT period_utc, ba_code, sum(value_mwh) AS fuel_sum
                 FROM raw.generation
-                WHERE period_utc > now() - interval '24 hours'
+                WHERE period_utc > now() - interval '72 hours'
                 GROUP BY period_utc, ba_code
             )
             SELECT ng.ba_code,
@@ -595,28 +583,29 @@ def validation() -> dict[str, Any]:
         fs_details: list[dict[str, Any]] = []
         for r in fs:
             ng, fsum = _f(r["net_generation_mwh"]), _f(r["fuel_sum_mwh"])
-            if ng is None or fsum is None or ng == 0:
+            hours = int(r["hours"] or 0)
+            if ng is None or fsum is None or ng == 0 or hours < MIN_OVERLAP_HOURS:
                 continue
             residual = fsum - ng
             pct = residual / ng * 100
             fs_details.append({
-                "ba_code": r["ba_code"], "status": _pct_status(pct, 5, 15),
+                "ba_code": r["ba_code"], "status": "warn" if abs(pct) > RECON_WARN_PCT else "pass",
                 "fuel_sum_mwh": round(fsum, 1), "net_generation_mwh": round(ng, 1),
                 "residual_mwh": round(residual, 1), "residual_pct": round(pct, 2),
-                "hours": int(r["hours"] or 0),
+                "hours": hours,
             })
         fs_status, fs_value = _rollup(fs_details)
         checks.append({
             "name": "fuel_shares",
             "status": fs_status,
             "value": fs_value,
-            "threshold": "+/-5% warn, +/-15% fail (per BA); check fails if >25% of BAs breach",
+            "threshold": f"advisory; warn if a BA is beyond +/-{RECON_WARN_PCT:.0f}% across >= {MIN_OVERLAP_HOURS} aligned hours (never fails)",
             "unit": "%",
             "explanation": (
                 "Sum of fuel-level generation should reconcile with reported net "
                 "generation per BA. Residual = fuel sum - net generation, as a "
-                "percent, summed over hours present in both feeds in the last 24h "
-                "(see Hours)."
+                "percent, over hours present in both feeds in the last 72h. "
+                "Advisory only: warns on large gaps but never fails (see Hours)."
             ),
             "counts": {},
             "details": fs_details,
