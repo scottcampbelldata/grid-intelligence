@@ -558,7 +558,8 @@ def validation() -> dict[str, Any]:
             "explanation": (
                 "EIA identity: demand = net generation - total interchange. "
                 "Residual = net generation - total interchange - demand, as a "
-                "percent of demand (summed over the last 24h)."
+                "percent of demand, summed over hours where D, NG and TI are all "
+                "present in the last 24h (NG/TI feeds are sparse; see Hours)."
             ),
             "counts": {},
             "details": eb_details,
@@ -614,7 +615,8 @@ def validation() -> dict[str, Any]:
             "explanation": (
                 "Sum of fuel-level generation should reconcile with reported net "
                 "generation per BA. Residual = fuel sum - net generation, as a "
-                "percent (summed over the last 24h)."
+                "percent, summed over hours present in both feeds in the last 24h "
+                "(see Hours)."
             ),
             "counts": {},
             "details": fs_details,
