@@ -55,8 +55,10 @@ def _rollup(details: list[dict[str, Any]]) -> tuple[str, str]:
     n = len(details)
     flagged = sum(1 for x in details if x["status"] != "pass")
     if n == 0:
-        return "pass", "no BAs with enough aligned hours to compare"
-    return ("warn" if flagged else "pass"), f"{flagged} of {n} BAs flagged"
+        return "pass", "awaiting settled data (feeds still backfilling)"
+    if flagged == 0:
+        return "pass", f"all {n} BAs reconcile"
+    return "warn", f"{n - flagged} of {n} BAs reconcile; {flagged} flagged"
 
 
 # ---------------------------------------------------------------------------
@@ -509,7 +511,9 @@ def validation() -> dict[str, Any]:
                        max(value_mwh) FILTER (WHERE series = 'NG') AS ng,
                        max(value_mwh) FILTER (WHERE series = 'TI') AS ti
                 FROM raw.demand
-                WHERE series IN ('D', 'NG', 'TI') AND period_utc > now() - interval '72 hours'
+                WHERE series IN ('D', 'NG', 'TI')
+                  AND period_utc >  now() - interval '72 hours'
+                  AND period_utc <= now() - interval '3 hours'
                 GROUP BY period_utc, ba_code
             )
             SELECT ba_code,
@@ -546,9 +550,10 @@ def validation() -> dict[str, Any]:
             "explanation": (
                 "EIA identity: demand = net generation - total interchange. "
                 "Residual = net generation - total interchange - demand, as a "
-                "percent of demand, over hours where D, NG and TI are all present "
-                "in the last 72h. Advisory only: NG/TI feeds are sparse, so this "
-                "warns on large gaps but never fails (see Hours)."
+                "percent of demand, over settled hours (the most recent 3h are "
+                "excluded as EIA reports them as preliminary) where D, NG and TI "
+                "are all present in the last 72h. Advisory only: warns on large "
+                "gaps, never fails."
             ),
             "counts": {},
             "details": eb_details,
@@ -562,13 +567,16 @@ def validation() -> dict[str, Any]:
             WITH ng AS (
                 SELECT period_utc, ba_code, max(value_mwh) AS ng
                 FROM raw.demand
-                WHERE series = 'NG' AND period_utc > now() - interval '72 hours'
+                WHERE series = 'NG'
+                  AND period_utc >  now() - interval '72 hours'
+                  AND period_utc <= now() - interval '3 hours'
                 GROUP BY period_utc, ba_code
             ),
             fuel AS (
                 SELECT period_utc, ba_code, sum(value_mwh) AS fuel_sum
                 FROM raw.generation
-                WHERE period_utc > now() - interval '72 hours'
+                WHERE period_utc >  now() - interval '72 hours'
+                  AND period_utc <= now() - interval '3 hours'
                 GROUP BY period_utc, ba_code
             )
             SELECT ng.ba_code,
@@ -605,8 +613,9 @@ def validation() -> dict[str, Any]:
             "explanation": (
                 "Sum of fuel-level generation should reconcile with reported net "
                 "generation per BA. Residual = fuel sum - net generation, as a "
-                "percent, over hours present in both feeds in the last 72h. "
-                "Advisory only: warns on large gaps but never fails (see Hours)."
+                "percent, over settled hours (the most recent 3h are excluded as "
+                "preliminary) present in both feeds in the last 72h. Advisory "
+                "only: warns on large gaps, never fails."
             ),
             "counts": {},
             "details": fs_details,
