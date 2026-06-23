@@ -51,7 +51,10 @@ function numOf(v: unknown): number {
 }
 function fmtPct(v: unknown): string {
   const n = numOf(v);
-  return Number.isNaN(n) ? "-" : `${n.toFixed(2)}%`;
+  if (Number.isNaN(n)) return "-";
+  const r = Math.round(n);
+  // Avoid "-0%" for tiny negative residuals that round to zero.
+  return `${r === 0 ? 0 : r}%`;
 }
 function fmtIntCell(v: unknown): string {
   const n = numOf(v);
@@ -108,12 +111,19 @@ const KEY_ORDER = [
   "total_interchange_mwh",
   "period_utc",
 ];
-function buildDetailColumns(details: ValidationDetail[]): Column<ValidationDetail>[] {
-  const keys = Object.keys(details[0] ?? {}).sort((a, b) => {
-    const ia = KEY_ORDER.indexOf(a);
-    const ib = KEY_ORDER.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
+function buildDetailColumns(
+  details: ValidationDetail[],
+  includeHours: boolean,
+): Column<ValidationDetail>[] {
+  const keys = Object.keys(details[0] ?? {})
+    // "hours" is internal coverage context, not an exec-facing metric; only show
+    // it in the expanded ("show all") view.
+    .filter((k) => includeHours || k !== "hours")
+    .sort((a, b) => {
+      const ia = KEY_ORDER.indexOf(a);
+      const ib = KEY_ORDER.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
   return keys.map((k): Column<ValidationDetail> => {
     if (k === "status") {
       return {
@@ -170,7 +180,7 @@ function CheckPanel({ check }: { check: ValidationCheck }) {
   const hasDetails = check.details.length > 0;
   const problems = check.details.filter((d) => String(d.status) !== "pass");
   const okCount = check.details.length - problems.length;
-  const cols = hasDetails ? buildDetailColumns(check.details) : [];
+  const cols = hasDetails ? buildDetailColumns(check.details, showAll) : [];
   const initialSort = cols.some((c) => c.key === "residual_pct")
     ? { key: "residual_pct", dir: "desc" as const }
     : { key: "status", dir: "desc" as const };
@@ -266,6 +276,15 @@ export function DataQualityTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
   const checks = data?.checks ?? [];
   const total = summary.pass + summary.warn + summary.fail;
 
+  // Plain-language verdict, leading with the reassuring case.
+  const headline = !loaded
+    ? null
+    : summary.fail > 0
+      ? `${summary.fail} ${summary.fail === 1 ? "check needs" : "checks need"} attention.`
+      : summary.warn > 0
+        ? `All checks healthy - ${summary.warn} advisory ${summary.warn === 1 ? "notice" : "notices"}.`
+        : "All data-quality checks passing.";
+
   return (
     <>
       {error && (
@@ -307,6 +326,8 @@ export function DataQualityTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           loading={!loaded}
         />
       </KpiRow>
+
+      {headline && <p className="mt-4 text-sm text-muted">{headline}</p>}
 
       {loaded && checks.length === 0 && !error ? (
         <div className="mt-6">
