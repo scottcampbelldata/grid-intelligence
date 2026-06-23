@@ -511,17 +511,28 @@ def validation() -> dict[str, Any]:
         })
 
         # 3. Energy balance per BA (last 24h): EIA identity demand = NG - TI.
+        #    Align per hour first - D, NG and TI can have different hour coverage
+        #    (feeds lag independently); summing each over the window separately
+        #    would compare mismatched hour counts. Only hours where all three
+        #    are present contribute.
         eb = conn.execute(text("""
+            WITH per_hour AS (
+                SELECT period_utc, ba_code,
+                       max(value_mwh) FILTER (WHERE series = 'D')  AS d,
+                       max(value_mwh) FILTER (WHERE series = 'NG') AS ng,
+                       max(value_mwh) FILTER (WHERE series = 'TI') AS ti
+                FROM raw.demand
+                WHERE series IN ('D', 'NG', 'TI') AND period_utc > now() - interval '24 hours'
+                GROUP BY period_utc, ba_code
+            )
             SELECT ba_code,
-                   sum(value_mwh) FILTER (WHERE series = 'D')  AS demand_mwh,
-                   sum(value_mwh) FILTER (WHERE series = 'NG') AS net_generation_mwh,
-                   sum(value_mwh) FILTER (WHERE series = 'TI') AS total_interchange_mwh
-            FROM raw.demand
-            WHERE series IN ('D', 'NG', 'TI') AND period_utc > now() - interval '24 hours'
+                   sum(d)  AS demand_mwh,
+                   sum(ng) AS net_generation_mwh,
+                   sum(ti) AS total_interchange_mwh,
+                   count(*) AS hours
+            FROM per_hour
+            WHERE d IS NOT NULL AND ng IS NOT NULL AND ti IS NOT NULL
             GROUP BY ba_code
-            HAVING sum(value_mwh) FILTER (WHERE series = 'D')  IS NOT NULL
-               AND sum(value_mwh) FILTER (WHERE series = 'NG') IS NOT NULL
-               AND sum(value_mwh) FILTER (WHERE series = 'TI') IS NOT NULL
             ORDER BY ba_code
         """)).mappings().all()
         eb_details: list[dict[str, Any]] = []
@@ -535,7 +546,7 @@ def validation() -> dict[str, Any]:
                 "ba_code": r["ba_code"], "status": _pct_status(pct, 5, 15),
                 "demand_mwh": round(d, 1), "net_generation_mwh": round(ng, 1),
                 "total_interchange_mwh": round(ti, 1), "residual_mwh": round(residual, 1),
-                "residual_pct": round(pct, 2),
+                "residual_pct": round(pct, 2), "hours": int(r["hours"] or 0),
             })
         eb_status, eb_value = _rollup(eb_details)
         checks.append({
@@ -555,21 +566,29 @@ def validation() -> dict[str, Any]:
 
         # 4. Fuel-mix reconciliation per BA (last 24h): sum of fuel-level
         #    generation vs reported net generation (series 'NG').
+        # Align per hour: the fuel feed and the NG feed lag independently, so
+        # join on (ba_code, period_utc) and only count hours present in both.
         fs = conn.execute(text("""
             WITH ng AS (
-                SELECT ba_code, sum(value_mwh) AS net_generation_mwh
+                SELECT period_utc, ba_code, max(value_mwh) AS ng
                 FROM raw.demand
                 WHERE series = 'NG' AND period_utc > now() - interval '24 hours'
-                GROUP BY ba_code
+                GROUP BY period_utc, ba_code
             ),
             fuel AS (
-                SELECT ba_code, sum(value_mwh) AS fuel_sum_mwh
+                SELECT period_utc, ba_code, sum(value_mwh) AS fuel_sum
                 FROM raw.generation
                 WHERE period_utc > now() - interval '24 hours'
-                GROUP BY ba_code
+                GROUP BY period_utc, ba_code
             )
-            SELECT ng.ba_code, ng.net_generation_mwh, fuel.fuel_sum_mwh
-            FROM ng JOIN fuel ON fuel.ba_code = ng.ba_code
+            SELECT ng.ba_code,
+                   sum(ng.ng)        AS net_generation_mwh,
+                   sum(fuel.fuel_sum) AS fuel_sum_mwh,
+                   count(*)          AS hours
+            FROM ng
+            JOIN fuel ON fuel.ba_code = ng.ba_code AND fuel.period_utc = ng.period_utc
+            WHERE ng.ng IS NOT NULL AND fuel.fuel_sum IS NOT NULL
+            GROUP BY ng.ba_code
             ORDER BY ng.ba_code
         """)).mappings().all()
         fs_details: list[dict[str, Any]] = []
@@ -583,6 +602,7 @@ def validation() -> dict[str, Any]:
                 "ba_code": r["ba_code"], "status": _pct_status(pct, 5, 15),
                 "fuel_sum_mwh": round(fsum, 1), "net_generation_mwh": round(ng, 1),
                 "residual_mwh": round(residual, 1), "residual_pct": round(pct, 2),
+                "hours": int(r["hours"] or 0),
             })
         fs_status, fs_value = _rollup(fs_details)
         checks.append({
