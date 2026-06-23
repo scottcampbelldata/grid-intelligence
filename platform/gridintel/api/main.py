@@ -49,6 +49,29 @@ def _pct_status(pct: float, warn: float, fail: float) -> str:
     return "pass"
 
 
+def _rollup(details: list[dict[str, Any]]) -> tuple[str, str]:
+    """Overall pass/warn/fail + a summary value for a per-BA check.
+
+    A single outlier BA should not turn a whole check red: warn when any BA is
+    flagged, fail only when a meaningful share (>25%) are beyond the fail band.
+    """
+    n = len(details)
+    fails = sum(1 for x in details if x["status"] == "fail")
+    flagged = sum(1 for x in details if x["status"] != "pass")
+    if n == 0:
+        status = "pass"
+    elif fails / n > 0.25:
+        status = "fail"
+    elif flagged > 0:
+        status = "warn"
+    else:
+        status = "pass"
+    value = f"{flagged} of {n} BAs outside +/-5%"
+    if fails:
+        value += f" ({fails} beyond +/-15%)"
+    return status, value
+
+
 # ---------------------------------------------------------------------------
 # Health / freshness
 # ---------------------------------------------------------------------------
@@ -263,14 +286,14 @@ def forecast_accuracy(
         SELECT DISTINCT ON (ba_code, period_utc) ba_code, period_utc, yhat_mwh AS yhat
         FROM ml.demand_forecast
         WHERE period_utc > now() - (:h || ' hours')::interval AND period_utc <= now()
-          AND (:ba IS NULL OR ba_code = :ba)
+          AND (:ba::text IS NULL OR ba_code = :ba::text)
         ORDER BY ba_code, period_utc, fit_at_utc DESC
     """
     eia_subq = """
         SELECT ba_code, period_utc, value_mwh AS yhat
         FROM raw.demand_forecast
         WHERE source = 'EIA' AND period_utc > now() - (:h || ' hours')::interval
-          AND period_utc <= now() AND (:ba IS NULL OR ba_code = :ba)
+          AND period_utc <= now() AND (:ba::text IS NULL OR ba_code = :ba::text)
     """
     score_tmpl = """
         WITH f AS ({subq})
@@ -466,11 +489,12 @@ def validation() -> dict[str, Any]:
         obs = int(dp.get("observations") or 0)
         nulls = int(dp.get("nulls") or 0)
         nonpos = int(dp.get("non_positive") or 0)
+        bad_frac = (nulls + nonpos) / obs if obs else 0
         checks.append({
             "name": "demand_plausibility",
-            "status": "fail" if nonpos > 0 else ("warn" if nulls > 0 else "pass"),
+            "status": "fail" if bad_frac > 0.02 else ("warn" if (nulls or nonpos) else "pass"),
             "value": f"{obs} demand observations, {nulls} null, {nonpos} non-positive",
-            "threshold": "0 null, 0 non-positive",
+            "threshold": "0 ideal; warn if any, fail if >2% null or non-positive",
             "unit": "",
             "explanation": (
                 "Hourly demand in the last 24h should be present and strictly "
@@ -507,12 +531,12 @@ def validation() -> dict[str, Any]:
                 "total_interchange_mwh": round(ti, 1), "residual_mwh": round(residual, 1),
                 "residual_pct": round(pct, 2),
             })
-        eb_flagged = [x for x in eb_details if x["status"] != "pass"]
+        eb_status, eb_value = _rollup(eb_details)
         checks.append({
             "name": "energy_balance",
-            "status": "fail" if any(x["status"] == "fail" for x in eb_details) else ("warn" if eb_flagged else "pass"),
-            "value": f"{len(eb_flagged)} of {len(eb_details)} BAs outside +/-5%",
-            "threshold": "+/-5% warn, +/-15% fail",
+            "status": eb_status,
+            "value": eb_value,
+            "threshold": "+/-5% warn, +/-15% fail (per BA); check fails if >25% of BAs breach",
             "unit": "%",
             "explanation": (
                 "EIA identity: demand = net generation - total interchange. "
@@ -554,12 +578,12 @@ def validation() -> dict[str, Any]:
                 "fuel_sum_mwh": round(fsum, 1), "net_generation_mwh": round(ng, 1),
                 "residual_mwh": round(residual, 1), "residual_pct": round(pct, 2),
             })
-        fs_flagged = [x for x in fs_details if x["status"] != "pass"]
+        fs_status, fs_value = _rollup(fs_details)
         checks.append({
             "name": "fuel_shares",
-            "status": "fail" if any(x["status"] == "fail" for x in fs_details) else ("warn" if fs_flagged else "pass"),
-            "value": f"{len(fs_flagged)} of {len(fs_details)} BAs outside +/-5%",
-            "threshold": "+/-5% warn, +/-15% fail",
+            "status": fs_status,
+            "value": fs_value,
+            "threshold": "+/-5% warn, +/-15% fail (per BA); check fails if >25% of BAs breach",
             "unit": "%",
             "explanation": (
                 "Sum of fuel-level generation should reconcile with reported net "
