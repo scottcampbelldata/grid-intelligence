@@ -59,10 +59,15 @@ async def run_demand_forecast() -> int:
         rows.extend(r)
     if not rows:
         return 0
+    # Each run is a distinct forecast vintage: fit_at_utc (DEFAULT now()) is part
+    # of the PK so re-forecasting a period stores a new vintage rather than
+    # overwriting the old one. The API/accuracy endpoints select recent vintages
+    # via `fit_at_utc`, so the conflict target MUST include it to match the PK -
+    # dropping it raised InvalidColumnReference and silently wrote zero rows.
     n = upsert_rows(
         "ml.demand_forecast",
         ["period_utc", "ba_code", "yhat_mwh", "yhat_lower", "yhat_upper", "model_name"],
-        ["period_utc", "ba_code", "model_name"],
+        ["period_utc", "ba_code", "model_name", "fit_at_utc"],
         rows,
     )
     log.info(f"forecast persisted: {n}")
