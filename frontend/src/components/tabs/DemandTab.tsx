@@ -79,6 +79,7 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           unit={demand.unit}
           sub={<Delta pct={headline?.deltaPct ?? null} />}
           loading={!loaded && !error}
+          spark={series.length > 1 ? series.map((s) => s.mwh) : undefined}
         />
         <KpiCard
           label="Generation, 24h"
