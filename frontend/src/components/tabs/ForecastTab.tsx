@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BaCompareSelect } from "@/components/BaCompareSelect";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { ForecastChart } from "@/components/ForecastChart";
 import {
   ForecastCompareChart,
@@ -15,6 +16,7 @@ import {
   getForecast,
   getForecastAccuracy,
   type AccuracySource,
+  type ForecastData,
 } from "@/lib/api";
 import { formatInt, formatPower } from "@/lib/format";
 import { seriesColor } from "@/lib/palette";
@@ -73,9 +75,25 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
   }, [options, bas]);
 
   // Forecast(s) for the selected BA(s) - refetches when the selection changes.
+  // allSettled (not Promise.all) so one BA's failure doesn't blank the whole
+  // comparison: render the BAs that loaded and note the ones that didn't. Only a
+  // total outage (nothing loaded) surfaces the error banner + retry.
   const key = bas.join(",");
   const { data, error, lastUpdated, refresh } = usePolling(
-    (signal) => Promise.all(bas.map((b) => getForecast(b, signal))),
+    async (signal): Promise<{ forecasts: ForecastData[]; failed: string[] }> => {
+      const settled = await Promise.allSettled(bas.map((b) => getForecast(b, signal)));
+      if (signal.aborted) throw new DOMException("aborted", "AbortError");
+      const forecasts: ForecastData[] = [];
+      const failed: string[] = [];
+      settled.forEach((r, i) => {
+        if (r.status === "fulfilled") forecasts.push(r.value);
+        else failed.push(bas[i]);
+      });
+      if (forecasts.length === 0) {
+        throw new Error(`forecast unavailable for ${failed.join(", ")}`);
+      }
+      return { forecasts, failed };
+    },
     60_000,
     [key],
   );
@@ -100,7 +118,8 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
     : 7;
 
   const loaded = lastUpdated !== null;
-  const forecasts = data ?? [];
+  const forecasts = data?.forecasts ?? [];
+  const failedBas = data?.failed ?? [];
   const comparing = forecasts.length > 1;
   const single = forecasts.length === 1 ? forecasts[0] : null;
 
@@ -127,16 +146,14 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
 
   return (
     <>
-      {error && (
-        <div className="mb-6 flex items-center justify-between gap-4 rounded-md border border-border bg-surface px-5 py-3 text-sm">
-          <span className="text-muted">Couldn&apos;t reach the API - {error}</span>
-          <button
-            type="button"
-            onClick={refresh}
-            className="text-accent transition-opacity hover:opacity-80"
-          >
-            Retry
-          </button>
+      {error && <ErrorBanner error={error} onRetry={refresh} />}
+
+      {!error && failedBas.length > 0 && (
+        <div
+          role="status"
+          className="mb-6 rounded-md border border-border bg-surface px-5 py-3 text-sm text-muted"
+        >
+          Couldn&apos;t load {failedBas.join(", ")} - showing the rest.
         </div>
       )}
 

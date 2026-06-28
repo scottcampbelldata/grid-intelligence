@@ -52,12 +52,26 @@ async def run_demand_forecast() -> int:
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     rows: list[tuple] = []
-    for r in results:
+    failed: list[str] = []
+    for ba, r in zip(bas, results):
         if isinstance(r, Exception):
-            log.warning(f"forecast failed: {r}")
+            log.warning(f"forecast failed for {ba}: {r}")
+            failed.append(ba)
             continue
         rows.extend(r)
+    # Surface silent degradation every run. A buried per-BA debug line once hid a
+    # fleet-wide outage; emit the failure count and how many BAs fell back from
+    # SARIMAX to the seasonal-naive model (tuple layout: ts, ba, yhat, lo, hi,
+    # model_name) so ops can see quality drop without grepping debug logs.
+    if failed:
+        log.warning(f"forecast: {len(failed)}/{len(bas)} BAs failed: {failed[:8]}")
+    fallback = sorted({r[1] for r in rows if str(r[5]).startswith("seasonal-naive")})
+    if fallback:
+        log.warning(
+            f"forecast: {len(fallback)} BAs on seasonal-naive fallback: {fallback[:8]}"
+        )
     if not rows:
+        log.warning("forecast: no rows produced (all BAs failed or returned empty)")
         return 0
     # Each run is a distinct forecast vintage: fit_at_utc (DEFAULT now()) is part
     # of the PK so re-forecasting a period stores a new vintage rather than
@@ -162,11 +176,15 @@ async def run_anomaly_scan() -> int:
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     rows: list[tuple] = []
-    for r in results:
+    failed: list[str] = []
+    for ba, r in zip(bas, results):
         if isinstance(r, Exception):
-            log.warning(f"anomaly fail: {r}")
+            log.warning(f"anomaly fail for {ba}: {r}")
+            failed.append(ba)
             continue
         rows.extend(r)
+    if failed:
+        log.warning(f"anomaly scan: {len(failed)}/{len(bas)} BAs failed: {failed[:8]}")
     if not rows:
         return 0
     n = upsert_rows(

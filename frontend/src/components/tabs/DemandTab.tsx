@@ -11,6 +11,7 @@ import {
 import { Delta, KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { TopBaChart } from "@/components/TopBaChart";
 import { formatEnergy, formatInt, formatPct, formatPower } from "@/lib/format";
 import { seriesColor } from "@/lib/palette";
@@ -68,18 +69,7 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
 
   return (
     <>
-      {error && (
-        <div className="mb-6 flex items-center justify-between gap-4 rounded-md border border-border bg-surface px-5 py-3 text-sm">
-          <span className="text-muted">Couldn&apos;t reach the API - {error}</span>
-          <button
-            type="button"
-            onClick={refresh}
-            className="text-accent transition-opacity hover:opacity-80"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {error && <ErrorBanner error={error} onRetry={refresh} />}
 
       <KpiRow>
         <KpiCard
