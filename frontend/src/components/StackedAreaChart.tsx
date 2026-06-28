@@ -128,7 +128,7 @@ export function StackedAreaChart({
           </span>
         </div>
       ) : (
-        <div className="h-[320px] w-full">
+        <div className="h-[320px] w-full" role="img" aria-label="Stacked area chart of generation by fuel type over time">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={series} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
             <CartesianGrid stroke={GRID} vertical={false} />
