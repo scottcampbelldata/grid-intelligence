@@ -15,16 +15,12 @@ import {
   type ValidationStatus,
 } from "@/lib/api";
 import { formatInt } from "@/lib/format";
-import { STATUS } from "@/lib/status";
 import type { TabMeta } from "@/lib/types";
+import { useThemeColors } from "@/lib/useThemeColors";
 import { usePolling } from "@/lib/useGridData";
 
-// pass / warn / fail - shared status palette, matching the Operations tab.
-const STATUS_COLOR: Record<string, string> = {
-  pass: STATUS.positive,
-  warn: STATUS.caution,
-  fail: STATUS.critical,
-};
+// pass / warn / fail map onto the shared status tones (positive / caution /
+// critical) via the theme-aware statusColor(), matching the Operations tab.
 const STATUS_RANK: Record<string, number> = { fail: 2, warn: 1, pass: 0 };
 
 const CHECK_LABELS: Record<string, string> = {
@@ -78,7 +74,8 @@ function fmtHour(v: unknown): string {
 }
 
 function StatusBadge({ status }: { status: ValidationStatus | string }) {
-  const color = STATUS_COLOR[status] ?? "#8b919e";
+  const { statusColor } = useThemeColors();
+  const color = statusColor(String(status));
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.06em]"
@@ -91,7 +88,8 @@ function StatusBadge({ status }: { status: ValidationStatus | string }) {
 }
 
 function StatusDot({ status }: { status: string }) {
-  const color = STATUS_COLOR[status] ?? "#8b919e";
+  const { statusColor } = useThemeColors();
+  const color = statusColor(status);
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />

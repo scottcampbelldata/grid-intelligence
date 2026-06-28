@@ -1,5 +1,6 @@
 import { timeAgo } from "@/lib/format";
 import { freshnessOf, LiveIndicator } from "./LiveIndicator";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface Props {
   lastUpdated: Date | null;
@@ -28,6 +29,7 @@ export function AppHeader({ lastUpdated, now, error }: Props) {
             Updated {timeAgo(lastUpdated, now)}
           </span>
           <LiveIndicator status={status} />
+          <ThemeToggle />
         </div>
       </div>
     </header>

@@ -15,7 +15,7 @@ import { PanelState } from "@/components/PanelState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { TopBaChart } from "@/components/TopBaChart";
 import { formatEnergy, formatInt, formatPct, formatPower } from "@/lib/format";
-import { seriesColor } from "@/lib/palette";
+import { useThemeColors } from "@/lib/useThemeColors";
 import type { TabMeta } from "@/lib/types";
 import { useDemandData } from "@/lib/useGridData";
 
@@ -28,6 +28,7 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
     onMeta({ lastUpdated, error });
   }, [lastUpdated, error, onMeta]);
 
+  const { seriesColor } = useThemeColors();
   const { headline, series, byBa, byBaSeries, times, generation, anomalies } = data;
   const loaded = lastUpdated !== null;
 

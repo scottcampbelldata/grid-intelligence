@@ -11,22 +11,23 @@ import { Panel } from "@/components/Panel";
 import { PanelState } from "@/components/PanelState";
 import { getRecentAnomalies, type Anomaly } from "@/lib/api";
 import { formatInt } from "@/lib/format";
-import { STATUS } from "@/lib/status";
+import type { StatusMap } from "@/lib/status";
 import type { TabMeta } from "@/lib/types";
+import { useThemeColors } from "@/lib/useThemeColors";
 import { usePolling } from "@/lib/useGridData";
 
 const WINDOW_HOURS = 48;
 
 // Severity → restrained semantic color (the one sanctioned color exception),
-// sourced from the shared status palette. Critical → red, warn/high → amber,
-// moderate/low → neutral.
-function severityStyle(sev: string): { color: string; rank: number } {
+// sourced from the active theme's status palette. Critical → red, warn/high →
+// amber, moderate/low → neutral.
+function severityStyle(sev: string, status: StatusMap): { color: string; rank: number } {
   const s = sev.toLowerCase();
-  if (s.includes("crit")) return { color: STATUS.critical, rank: 3 };
+  if (s.includes("crit")) return { color: status.critical, rank: 3 };
   if (s.includes("warn") || s.includes("high") || s.includes("sev"))
-    return { color: STATUS.caution, rank: 2 };
-  if (s.includes("mod")) return { color: STATUS.neutral, rank: 1 };
-  return { color: STATUS.neutral, rank: 0 };
+    return { color: status.caution, rank: 2 };
+  if (s.includes("mod")) return { color: status.neutral, rank: 1 };
+  return { color: status.neutral, rank: 0 };
 }
 
 function isCritical(a: Anomaly) {
@@ -63,6 +64,7 @@ export function AnomaliesTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
     onMeta({ lastUpdated, error });
   }, [lastUpdated, error, onMeta]);
 
+  const { status } = useThemeColors();
   const loaded = lastUpdated !== null;
   const anomalies = data ?? [];
   const isEmpty = loaded && !error && anomalies.length === 0;
@@ -98,7 +100,7 @@ export function AnomaliesTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
       header: "Severity",
       align: "left",
       render: (r) => {
-        const { color } = severityStyle(r.severity);
+        const { color } = severityStyle(r.severity, status);
         return (
           <span className="inline-flex items-center gap-1.5">
             <span
@@ -111,7 +113,7 @@ export function AnomaliesTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           </span>
         );
       },
-      sortValue: (r) => severityStyle(r.severity).rank,
+      sortValue: (r) => severityStyle(r.severity, status).rank,
     },
     {
       key: "actual",

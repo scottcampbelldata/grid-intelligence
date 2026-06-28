@@ -10,16 +10,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useThemeColors } from "@/lib/useThemeColors";
 
 // Reusable ranked horizontal bar chart in the executive style: single accent,
 // value labels at bar ends, quiet vertical gridlines. Used by the Demand
 // (top BAs) and Generation (fuel share) tabs, and any future ranked breakdown.
-const ACCENT = "#4f8bf5";
-const BORDER = "#23262d"; // axis baseline
-const GRID = "#1a1d23"; // gridlines recede behind the data
-const MUTED = "#8b919e";
-const TEXT = "#e5e7eb";
-
 const ROW_HEIGHT = 30; // px per bar
 
 export interface HBarDatum {
@@ -63,6 +58,7 @@ export function HBarChart({
   unit = "",
   labelWidth = 64,
 }: Props) {
+  const { accent, border, grid, muted, text, overlay } = useThemeColors();
   const rows = data.slice(0, maxBars);
   const height = rows.length * ROW_HEIGHT + 24;
 
@@ -75,31 +71,31 @@ export function HBarChart({
           margin={{ top: 4, right: 44, bottom: 4, left: 8 }}
           barCategoryGap={8}
         >
-          <CartesianGrid stroke={GRID} horizontal={false} />
+          <CartesianGrid stroke={grid} horizontal={false} />
           <XAxis
             type="number"
             allowDecimals={false}
             tickFormatter={(v) => `${Math.round(v)}`}
-            tick={{ fontSize: 11, fill: MUTED }}
+            tick={{ fontSize: 11, fill: muted }}
             tickLine={false}
             tickMargin={10}
-            axisLine={{ stroke: BORDER }}
+            axisLine={{ stroke: border }}
           />
           <YAxis
             type="category"
             dataKey="label"
             width={labelWidth}
-            tick={{ fontSize: 11, fill: MUTED }}
+            tick={{ fontSize: 11, fill: muted }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip
             content={<ChartTooltip decimals={decimals} unit={unit} />}
-            cursor={{ fill: "rgba(79,139,245,0.06)" }}
+            cursor={{ fill: overlay.barCursor }}
           />
           <Bar
             dataKey="value"
-            fill={ACCENT}
+            fill={accent}
             fillOpacity={0.9}
             radius={[0, 2, 2, 0]}
             isAnimationActive={false}
@@ -108,7 +104,7 @@ export function HBarChart({
               dataKey="value"
               position="right"
               formatter={(v: number) => v.toFixed(decimals)}
-              style={{ fill: TEXT, fontSize: 11, fontFamily: "var(--font-mono)" }}
+              style={{ fill: text, fontSize: 11, fontFamily: "var(--font-mono)" }}
             />
           </Bar>
         </BarChart>

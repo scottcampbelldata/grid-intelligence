@@ -15,7 +15,7 @@ interface Props {
 
 export function KpiCard({ label, value, unit, sub, loading = false, spark }: Props) {
   return (
-    <div className="group rounded-md border border-border bg-surface px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.25)] transition-colors hover:border-border/80 hover:bg-surface-hover">
+    <div className="group rounded-md border border-border bg-surface px-5 py-4 shadow-card transition-colors hover:border-border/80 hover:bg-surface-hover">
       <div className="text-xs uppercase tracking-[0.12em] text-muted">{label}</div>
 
       {loading ? (
@@ -37,7 +37,7 @@ export function KpiCard({ label, value, unit, sub, loading = false, spark }: Pro
               {unit && <span className="ml-1.5 text-sm font-normal text-muted">{unit}</span>}
             </div>
             {spark && spark.length > 1 && (
-              <Sparkline values={spark} className="mb-0.5 shrink-0 opacity-90" />
+              <Sparkline values={spark} className="mb-0.5 shrink-0 text-accent opacity-90" />
             )}
           </div>
           <div className="mt-2 h-4 text-xs text-muted">{sub}</div>

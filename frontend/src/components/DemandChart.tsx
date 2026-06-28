@@ -10,13 +10,8 @@ import {
   YAxis,
 } from "recharts";
 import { formatHour } from "@/lib/format";
+import { useThemeColors } from "@/lib/useThemeColors";
 import type { DemandSeriesPoint } from "@/lib/api";
-
-// Theme tokens referenced directly - Recharts SVG props can't read Tailwind classes.
-const ACCENT = "#4f8bf5";
-const BORDER = "#23262d"; // panel hairlines / axis baseline
-const GRID = "#1a1d23"; // gridlines: one step darker than borders, so they recede
-const MUTED = "#8b919e";
 
 // Data points are hourly MWh, which for a one-hour period equals average power
 // in MW. We present the axis in GW to match the "Network demand" KPI card.
@@ -50,26 +45,28 @@ function ChartTooltip({ active, payload }: TooltipProps) {
 }
 
 export function DemandChart({ data }: { data: DemandSeriesPoint[] }) {
+  // Recharts SVG props can't read Tailwind classes - pull theme-aware hex.
+  const { accent, border, grid, muted } = useThemeColors();
   return (
     <div className="h-[320px] w-full" role="img" aria-label="Area chart of electricity demand over time">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
-          <CartesianGrid stroke={GRID} vertical={false} />
+          <CartesianGrid stroke={grid} vertical={false} />
           <XAxis
             dataKey="t"
             type="number"
             scale="time"
             domain={["dataMin", "dataMax"]}
             tickFormatter={formatHour}
-            tick={{ fontSize: 11, fill: MUTED }}
+            tick={{ fontSize: 11, fill: muted }}
             tickLine={false}
             tickMargin={10}
-            axisLine={{ stroke: BORDER }}
+            axisLine={{ stroke: border }}
             minTickGap={48}
           />
           <YAxis
             tickFormatter={yTick}
-            tick={{ fontSize: 11, fill: MUTED }}
+            tick={{ fontSize: 11, fill: muted }}
             tickLine={false}
             tickMargin={8}
             axisLine={false}
@@ -79,18 +76,18 @@ export function DemandChart({ data }: { data: DemandSeriesPoint[] }) {
           />
           <Tooltip
             content={<ChartTooltip />}
-            cursor={{ stroke: MUTED, strokeWidth: 1, strokeDasharray: "3 3" }}
+            cursor={{ stroke: muted, strokeWidth: 1, strokeDasharray: "3 3" }}
           />
           {/* Single accent line; flat low-opacity fill (no gradient). */}
           <Area
             type="monotone"
             dataKey="mwh"
-            stroke={ACCENT}
+            stroke={accent}
             strokeWidth={1.75}
-            fill={ACCENT}
+            fill={accent}
             fillOpacity={0.07}
             dot={false}
-            activeDot={{ r: 3, fill: ACCENT, stroke: "none" }}
+            activeDot={{ r: 3, fill: accent, stroke: "none" }}
             isAnimationActive={false}
           />
         </AreaChart>

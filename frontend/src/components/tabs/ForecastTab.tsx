@@ -20,7 +20,7 @@ import {
   type ForecastData,
 } from "@/lib/api";
 import { formatInt, formatPower } from "@/lib/format";
-import { seriesColor } from "@/lib/palette";
+import { useThemeColors } from "@/lib/useThemeColors";
 import type { TabMeta } from "@/lib/types";
 import { usePolling } from "@/lib/useGridData";
 
@@ -118,6 +118,7 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
     ? Math.round(accuracyData.windowHours / 24)
     : 7;
 
+  const { seriesColor } = useThemeColors();
   const loaded = lastUpdated !== null;
   const forecasts = data?.forecasts ?? [];
   const failedBas = data?.failed ?? [];

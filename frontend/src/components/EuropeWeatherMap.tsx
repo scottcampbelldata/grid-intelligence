@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { useThemeColors } from "@/lib/useThemeColors";
 import type { EuropeWeatherZone } from "@/lib/api";
 
 // world-atlas countries topojson (geographic lon/lat), projected with
@@ -10,18 +11,15 @@ import type { EuropeWeatherZone } from "@/lib/api";
 // out of frame so the European zones fill the panel.
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
 
-// Land styling is identical to WeatherMap.tsx so the two maps read as a set:
-// land lifted clearly off the panel surface, visibly-but-quietly drawn borders,
-// and a dark ring separating each dot from the land.
-const LAND = "#272d3a"; // country fill - clearly above the panel surface
-const LAND_STROKE = "#5b6575"; // borders - clearly visible, not loud
+// Land styling is theme-aware and shared with WeatherMap.tsx (via
+// lib/theme-colors.ts) so the two maps read as a set in both light and dark.
 const LAND_STROKE_WIDTH = 0.6; // a touch finer than the US - more, smaller countries
-const MARKER_STROKE = "#10131a"; // dark ring separating a dot from the land
 const MARKER_STROKE_WIDTH = 1.25;
 const DOT_R = 4.5; // resting dot radius
 const DOT_R_ACTIVE = 6.5; // hovered dot radius
 
 // Muted cool → neutral → warm ramp (no garish hues) - same ramp as the US map.
+// A data colormap (temperature), so it's constant across themes.
 type RGB = [number, number, number];
 const COOL: RGB = [74, 127, 168];
 const MID: RGB = [150, 150, 134];
@@ -33,8 +31,8 @@ function mix(a: RGB, b: RGB, t: number): RGB {
 function clamp01(x: number): number {
   return Math.max(0, Math.min(1, x));
 }
-function tempColor(c: number | null, min: number, max: number): string {
-  if (c === null) return "#6b7280";
+function tempColor(c: number | null, min: number, max: number, nullFill: string): string {
+  if (c === null) return nullFill;
   const t = clamp01((c - min) / (max - min || 1));
   const [r, g, b] = t < 0.5 ? mix(COOL, MID, t * 2) : mix(MID, WARM, (t - 0.5) * 2);
   return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
@@ -58,6 +56,7 @@ interface Hover {
 }
 
 export function EuropeWeatherMap({ stations }: { stations: EuropeWeatherZone[] }) {
+  const { map } = useThemeColors();
   const placed = stations.filter((s) => s.lat !== null && s.lon !== null);
   const unplaced = stations.length - placed.length;
   const temps = placed.map((s) => s.tempC).filter((t): t is number => t !== null);
@@ -88,13 +87,13 @@ export function EuropeWeatherMap({ stations }: { stations: EuropeWeatherZone[] }
               <Geography
                 key={geo.rsmKey}
                 geography={geo}
-                fill={LAND}
-                stroke={LAND_STROKE}
+                fill={map.land}
+                stroke={map.landStroke}
                 strokeWidth={LAND_STROKE_WIDTH}
                 style={{
                   default: { outline: "none" },
-                  hover: { outline: "none", fill: LAND },
-                  pressed: { outline: "none", fill: LAND },
+                  hover: { outline: "none", fill: map.land },
+                  pressed: { outline: "none", fill: map.land },
                 }}
               />
             ))
@@ -112,8 +111,8 @@ export function EuropeWeatherMap({ stations }: { stations: EuropeWeatherZone[] }
             >
               <circle
                 r={active ? DOT_R_ACTIVE : DOT_R}
-                fill={tempColor(s.tempC, min, max)}
-                stroke={active ? "#e5e7eb" : MARKER_STROKE}
+                fill={tempColor(s.tempC, min, max, map.nullFill)}
+                stroke={active ? map.markerActiveStroke : map.markerStroke}
                 strokeWidth={active ? 1.5 : MARKER_STROKE_WIDTH}
                 style={{ cursor: "pointer", transition: "r 80ms" }}
               />

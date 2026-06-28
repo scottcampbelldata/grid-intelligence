@@ -2,6 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens as RGB channel triples ("R G B") so Tailwind can inject alpha
+ * via the `<alpha-value>` syntax in tailwind.config.ts - that's what keeps
+ * utilities like `text-muted/40` and `border-border/80` working. Dark is the
+ * default (on :root); the `.light` class on <html> overrides it. An inline
+ * script in layout.tsx sets that class before first paint, so there is no
+ * flash of the wrong theme on load. Chart/SVG colors can't read these (Recharts
+ * takes string props), so they're mirrored in lib/theme-colors.ts and selected
+ * at runtime by the useThemeColors hook.
+ */
+:root {
+  color-scheme: dark;
+
+  --c-bg: 10 11 14; /* page background - near-black */
+  --c-surface: 19 21 25; /* cards / panels */
+  --c-surface-hover: 26 29 35;
+  --c-border: 35 38 45; /* hairline dividers */
+  --c-text: 229 231 235; /* primary text - off-white, not pure white */
+  --c-muted: 139 145 158; /* labels, secondary text */
+  --c-accent: 79 139 245; /* the one accent: chart line, live dot, active tab */
+  --c-positive: 94 168 138; /* ok / pass / healthy */
+  --c-caution: 201 164 92; /* warn / stale / advisory */
+  --c-critical: 208 138 138; /* fail / error / critical */
+
+  /* Non-tokenized surface details (no alpha-modifier use, so kept as values). */
+  --c-scrollbar: 35 38 45;
+  --c-skeleton-base: 22 25 31;
+  --c-skeleton-sheen: rgba(255, 255, 255, 0.05);
+  --c-card-shadow: rgba(0, 0, 0, 0.25);
+}
+
+/* Warm-paper light theme - a designed counterpart to the dark terminal, not an
+   inversion. Off-white surfaces, ink-grey text, the same one-accent discipline;
+   status + accent colors deepened so they clear WCAG AA on a light ground. */
+html.light {
+  color-scheme: light;
+
+  --c-bg: 246 245 242; /* warm paper */
+  --c-surface: 255 255 255; /* cards / panels */
+  --c-surface-hover: 240 239 235;
+  --c-border: 228 226 220; /* hairline dividers */
+  --c-text: 26 29 35; /* ink - mirrors the dark surface tone */
+  --c-muted: 107 114 128; /* ~5:1 on paper - passes AA for text */
+  --c-accent: 47 111 224; /* deepened blue - ~4.8:1 on white */
+  --c-positive: 47 125 91;
+  --c-caution: 138 106 34;
+  --c-critical: 176 74 69;
+
+  --c-scrollbar: 205 203 196;
+  --c-skeleton-base: 236 234 228;
+  --c-skeleton-sheen: rgba(0, 0, 0, 0.045);
+  --c-card-shadow: rgba(40, 40, 55, 0.07);
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
@@ -13,13 +67,15 @@
     @apply bg-bg font-sans text-text;
     /* tabular figures everywhere by default - terminal numerals */
     font-feature-settings: "tnum" 1;
+    /* Smooth the theme flip without animating every paint on first load. */
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
   ::selection {
-    background: rgba(79, 139, 245, 0.25);
+    background: rgb(var(--c-accent) / 0.25);
   }
 
-  /* Single, consistent keyboard-focus treatment for the whole dark shell.
+  /* Single, consistent keyboard-focus treatment for the whole shell.
      Mouse clicks don't trigger :focus-visible, so this only shows for keyboard
      users - a real a11y win without visual noise for pointer users. */
   :focus-visible {
@@ -32,17 +88,17 @@
     outline: none;
   }
 
-  /* Restrained scrollbars to match the dark shell */
+  /* Restrained scrollbars that follow the active theme. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #23262d transparent;
+    scrollbar-color: rgb(var(--c-scrollbar)) transparent;
   }
   *::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
   *::-webkit-scrollbar-thumb {
-    background: #23262d;
+    background: rgb(var(--c-scrollbar));
     border-radius: 9999px;
   }
 }
@@ -51,12 +107,12 @@
   /* Loading skeleton: a slow gradient sweep over a surface-toned block. Sized by
      the element it's applied to; pair with width/height utilities. */
   .skeleton {
-    background-color: #16191f;
+    background-color: rgb(var(--c-skeleton-base));
     background-image: linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.05) 50%,
-      rgba(255, 255, 255, 0) 100%
+      transparent 0%,
+      var(--c-skeleton-sheen) 50%,
+      transparent 100%
     );
     background-size: 200% 100%;
     background-repeat: no-repeat;

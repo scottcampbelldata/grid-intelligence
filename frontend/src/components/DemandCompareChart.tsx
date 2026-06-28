@@ -10,13 +10,11 @@ import {
   YAxis,
 } from "recharts";
 import { formatHour } from "@/lib/format";
+import { useThemeColors } from "@/lib/useThemeColors";
 
 // Overlays the demand curves of a handful of balancing authorities (2-5). Each
 // BA is a restrained, distinct line from the shared series palette; the
 // caller caps the count so the overlay stays legible rather than spaghetti.
-const BORDER = "#23262d";
-const GRID = "#1a1d23";
-const MUTED = "#8b919e";
 
 export interface CompareLine {
   ba: string;
@@ -76,6 +74,7 @@ export function DemandCompareChart({
   rows: CompareRow[];
   lines: CompareLine[];
 }) {
+  const { border, grid, muted } = useThemeColors();
   return (
     // No legend here: the BA selector chips above the chart already encode each
     // series' color and name, so a second legend would just repeat them.
@@ -83,22 +82,22 @@ export function DemandCompareChart({
       <div className="h-[320px] w-full" role="img" aria-label="Line chart comparing electricity demand across balancing authorities">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
-            <CartesianGrid stroke={GRID} vertical={false} />
+            <CartesianGrid stroke={grid} vertical={false} />
             <XAxis
               dataKey="t"
               type="number"
               scale="time"
               domain={["dataMin", "dataMax"]}
               tickFormatter={formatHour}
-              tick={{ fontSize: 11, fill: MUTED }}
+              tick={{ fontSize: 11, fill: muted }}
               tickLine={false}
               tickMargin={10}
-              axisLine={{ stroke: BORDER }}
+              axisLine={{ stroke: border }}
               minTickGap={48}
             />
             <YAxis
               tickFormatter={(v) => `${Math.round(v / 1_000)}`}
-              tick={{ fontSize: 11, fill: MUTED }}
+              tick={{ fontSize: 11, fill: muted }}
               tickLine={false}
               tickMargin={8}
               axisLine={false}
@@ -107,7 +106,7 @@ export function DemandCompareChart({
             />
             <Tooltip
               content={<CompareTooltip lines={lines} />}
-              cursor={{ stroke: MUTED, strokeWidth: 1, strokeDasharray: "3 3" }}
+              cursor={{ stroke: muted, strokeWidth: 1, strokeDasharray: "3 3" }}
             />
             {lines.map((l) => (
               <Line

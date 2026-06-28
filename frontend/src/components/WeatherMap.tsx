@@ -2,26 +2,23 @@
 
 import { useRef, useState } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { useThemeColors } from "@/lib/useThemeColors";
 import type { WeatherStation } from "@/lib/api";
 
 // us-atlas states topojson is geographic (lon/lat), so geoAlbersUsa projects it
 // - and the markers, which take [lon, lat] - into the same accurate space.
 const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 
-// Land styling - lifted clearly off the panel surface (#131519) so the US reads
-// as a recognizable filled shape at a glance, while staying in the restrained
-// dark / terminal aesthetic: a perceptible tonal lift, visibly-but-quietly drawn
-// state borders, and dots that pop against the lifted land. These exact land +
-// border values are shared with EuropeWeatherMap so the two maps read as a set.
-const LAND = "#272d3a"; // state fill - clearly above the panel surface
-const LAND_STROKE = "#5b6575"; // state borders - clearly visible, not loud
+// Land styling (lift off the panel, state borders, the ring around each dot) is
+// theme-aware and shared with EuropeWeatherMap via lib/theme-colors.ts so the
+// two maps read as a set in both light and dark.
 const LAND_STROKE_WIDTH = 0.9;
-const MARKER_STROKE = "#10131a"; // dark ring separating a dot from the land
 const MARKER_STROKE_WIDTH = 1.25;
 const DOT_R = 4.5; // resting dot radius
 const DOT_R_ACTIVE = 6.5; // hovered dot radius
 
-// Muted cool → neutral → warm ramp (no garish hues).
+// Muted cool → neutral → warm ramp (no garish hues). This is a data colormap
+// (temperature), not chrome, so it stays constant across themes.
 type RGB = [number, number, number];
 const COOL: RGB = [74, 127, 168];
 const MID: RGB = [150, 150, 134];
@@ -33,8 +30,8 @@ function mix(a: RGB, b: RGB, t: number): RGB {
 function clamp01(x: number): number {
   return Math.max(0, Math.min(1, x));
 }
-function tempColor(c: number | null, min: number, max: number): string {
-  if (c === null) return "#6b7280";
+function tempColor(c: number | null, min: number, max: number, nullFill: string): string {
+  if (c === null) return nullFill;
   const t = clamp01((c - min) / (max - min || 1));
   const [r, g, b] = t < 0.5 ? mix(COOL, MID, t * 2) : mix(MID, WARM, (t - 0.5) * 2);
   return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
@@ -58,6 +55,7 @@ interface Hover {
 }
 
 export function WeatherMap({ stations }: { stations: WeatherStation[] }) {
+  const { map } = useThemeColors();
   const placed = stations.filter((s) => s.lat !== null && s.lon !== null);
   const unplaced = stations.length - placed.length;
   const temps = placed.map((s) => s.tempC).filter((t): t is number => t !== null);
@@ -88,13 +86,13 @@ export function WeatherMap({ stations }: { stations: WeatherStation[] }) {
               <Geography
                 key={geo.rsmKey}
                 geography={geo}
-                fill={LAND}
-                stroke={LAND_STROKE}
+                fill={map.land}
+                stroke={map.landStroke}
                 strokeWidth={LAND_STROKE_WIDTH}
                 style={{
                   default: { outline: "none" },
-                  hover: { outline: "none", fill: LAND },
-                  pressed: { outline: "none", fill: LAND },
+                  hover: { outline: "none", fill: map.land },
+                  pressed: { outline: "none", fill: map.land },
                 }}
               />
             ))
@@ -112,8 +110,8 @@ export function WeatherMap({ stations }: { stations: WeatherStation[] }) {
             >
               <circle
                 r={active ? DOT_R_ACTIVE : DOT_R}
-                fill={tempColor(s.tempC, min, max)}
-                stroke={active ? "#e5e7eb" : MARKER_STROKE}
+                fill={tempColor(s.tempC, min, max, map.nullFill)}
+                stroke={active ? map.markerActiveStroke : map.markerStroke}
                 strokeWidth={active ? 1.5 : MARKER_STROKE_WIDTH}
                 style={{ cursor: "pointer", transition: "r 80ms" }}
               />
