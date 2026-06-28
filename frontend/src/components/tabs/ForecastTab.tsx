@@ -181,6 +181,13 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
             unit={latest.unit}
             sub={single?.lastActual ? shortTime(single.lastActual.t) : ""}
             loading={!loaded && !error}
+            spark={
+              single
+                ? single.points
+                    .map((p) => p.actual)
+                    .filter((v): v is number => v !== null)
+                : undefined
+            }
           />
           <KpiCard
             label="Next forecast"

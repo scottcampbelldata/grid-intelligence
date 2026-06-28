@@ -77,18 +77,9 @@ export function DemandCompareChart({
   lines: CompareLine[];
 }) {
   return (
+    // No legend here: the BA selector chips above the chart already encode each
+    // series' color and name, so a second legend would just repeat them.
     <div>
-      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1.5">
-        {lines.map((l) => (
-          <span key={l.ba} className="inline-flex items-center gap-1.5 text-xs text-muted">
-            <span
-              className="inline-block h-2 w-2 rounded-[1px]"
-              style={{ backgroundColor: l.color }}
-            />
-            {l.ba}
-          </span>
-        ))}
-      </div>
       <div className="h-[320px] w-full" role="img" aria-label="Line chart comparing electricity demand across balancing authorities">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
