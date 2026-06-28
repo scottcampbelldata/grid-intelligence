@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatGwTick, formatHour } from "@/lib/format";
+import { formatHour } from "@/lib/format";
 import type { ForecastData } from "@/lib/api";
 
 // Compares the forecasts of 2-3 balancing authorities. Each BA is ONE colored
@@ -20,6 +20,15 @@ import type { ForecastData } from "@/lib/api";
 // bands are deliberately dropped here: stacking 2-3 translucent bands turns the
 // panel to mush, so bands stay in the single-BA view and comparison stays to
 // clean lines.
+//
+// Series are NORMALIZED to each BA's own peak (% of peak), not plotted in
+// absolute GW. A shared GW axis is the wrong encoding for comparison: a 120 GW
+// RTO (PJM) and a 3 GW utility (PGE) on one linear scale just crushes the small
+// BA into a flat line at the floor and communicates nothing but "PJM is big" -
+// which the single-BA view already shows. Normalizing lets the actual point of a
+// comparison - demand *shape* and timing (diurnal peaks, ramps, where each grid
+// sits in its cycle) - read directly across BAs of any size. Absolute GW is not
+// lost: the tooltip carries it so magnitude is one hover away.
 const BORDER = "#23262d";
 const GRID = "#1a1d23";
 const MUTED = "#8b919e";
@@ -43,11 +52,23 @@ function hasValidForecast(s: ForecastCompareSeries): boolean {
   return s.data.points.some((p) => p.yhat !== null && p.yhat >= 0);
 }
 
-// Merge every BA's points onto a shared timeline. Per BA: a history series
-// (actual) and a forecast series (yhat). The forecast series is seeded with the
-// last actual value at the boundary so the dashed line joins the solid one
-// instead of floating a gap.
-function buildRows(series: ForecastCompareSeries[]): Row[] {
+// Each BA's peak across the visible window (actual + forecast), used as its
+// normalization base. Demand is non-negative, so we only consider values >= 0.
+function peakOf(s: ForecastCompareSeries): number {
+  let peak = 0;
+  for (const p of s.data.points) {
+    if (p.actual !== null && p.actual >= 0 && p.actual > peak) peak = p.actual;
+    if (p.yhat !== null && p.yhat >= 0 && p.yhat > peak) peak = p.yhat;
+  }
+  if (s.data.lastActual && s.data.lastActual.mwh > peak) peak = s.data.lastActual.mwh;
+  return peak;
+}
+
+// Merge every BA's points onto a shared timeline, normalized to % of that BA's
+// own peak. Per BA: a history series (actual) and a forecast series (yhat). The
+// forecast series is seeded with the last actual value at the boundary so the
+// dashed line joins the solid one instead of floating a gap.
+function buildRows(series: ForecastCompareSeries[], peaks: Map<string, number>): Row[] {
   const byT = new Map<number, Row>();
   const ensure = (t: number): Row => {
     let r = byT.get(t);
@@ -57,18 +78,24 @@ function buildRows(series: ForecastCompareSeries[]): Row[] {
     }
     return r;
   };
+  // Normalize a raw MWh value to a percent of the BA's peak. A non-positive peak
+  // (no usable data) yields null so the line simply doesn't draw.
+  const pct = (ba: string, mwh: number): number | null => {
+    const peak = peaks.get(ba) ?? 0;
+    return peak > 0 ? (mwh / peak) * 100 : null;
+  };
   for (const s of series) {
     for (const p of s.data.points) {
       const r = ensure(p.t);
       // Demand can't be negative; some BAs' SARIMAX forecasts go wildly negative
-      // and would otherwise crater the shared y-axis. Drop physically-impossible
+      // and would otherwise crater the shared axis. Drop physically-impossible
       // values so a single broken model can't ruin the comparison - that BA then
       // simply shows no forward forecast line.
-      if (p.actual !== null && p.actual >= 0) r[histKey(s.ba)] = p.actual;
-      if (p.yhat !== null && p.yhat >= 0) r[fcstKey(s.ba)] = p.yhat;
+      if (p.actual !== null && p.actual >= 0) r[histKey(s.ba)] = pct(s.ba, p.actual);
+      if (p.yhat !== null && p.yhat >= 0) r[fcstKey(s.ba)] = pct(s.ba, p.yhat);
     }
     if (s.data.lastActual && s.data.lastActual.mwh >= 0) {
-      ensure(s.data.lastActual.t)[fcstKey(s.ba)] = s.data.lastActual.mwh;
+      ensure(s.data.lastActual.t)[fcstKey(s.ba)] = pct(s.ba, s.data.lastActual.mwh);
     }
   }
   return [...byT.values()].sort((a, b) => a.t - b.t);
@@ -78,9 +105,10 @@ interface TooltipProps {
   active?: boolean;
   payload?: Array<{ payload: Row }>;
   series: ForecastCompareSeries[];
+  peaks: Map<string, number>;
 }
 
-function CompareTooltip({ active, payload, series }: TooltipProps) {
+function CompareTooltip({ active, payload, series, peaks }: TooltipProps) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
@@ -99,8 +127,13 @@ function CompareTooltip({ active, payload, series }: TooltipProps) {
           const fcst = row[fcstKey(s.ba)];
           // Prefer the actual; fall back to the forecast when past "now".
           const isForecast = hist == null && fcst != null;
-          const v = hist ?? fcst;
-          if (v == null) return null;
+          const pct = hist ?? fcst;
+          if (pct == null) return null;
+          // Recover absolute GW from the normalized value so magnitude is never
+          // lost to normalization - the shape comparison stays on the axis, the
+          // real numbers stay one hover away.
+          const peak = peaks.get(s.ba) ?? 0;
+          const gw = (pct / 100) * peak;
           return (
             <div key={s.ba} className="flex items-center justify-between gap-6">
               <span className="inline-flex items-center gap-1.5 text-muted">
@@ -112,7 +145,8 @@ function CompareTooltip({ active, payload, series }: TooltipProps) {
                 {isForecast && <span className="text-muted/70">· fcst</span>}
               </span>
               <span className="font-mono tabular-nums text-text">
-                {(v / 1_000).toFixed(1)} GW
+                {pct.toFixed(0)}%
+                <span className="text-muted"> · {(gw / 1_000).toFixed(1)} GW</span>
               </span>
             </div>
           );
@@ -155,7 +189,8 @@ function Legend({ series }: { series: ForecastCompareSeries[] }) {
 }
 
 export function ForecastCompareChart({ series }: { series: ForecastCompareSeries[] }) {
-  const rows = buildRows(series);
+  const peaks = new Map(series.map((s) => [s.ba, peakOf(s)]));
+  const rows = buildRows(series, peaks);
   const boundaries = series
     .map((s) => s.data.boundaryT)
     .filter((t): t is number => t !== null);
@@ -181,18 +216,19 @@ export function ForecastCompareChart({ series }: { series: ForecastCompareSeries
               minTickGap={48}
             />
             <YAxis
-              tickFormatter={formatGwTick}
+              tickFormatter={(v: number) => `${v}%`}
               tick={{ fontSize: 11, fill: MUTED }}
               tickLine={false}
               tickMargin={8}
               axisLine={false}
               width={44}
-              // Demand is non-negative - floor at 0 so a stray value can never
-              // open negative axis space below the lines.
-              domain={[0, "auto"]}
+              // Normalized to % of each BA's own peak; floor at 0 (demand is
+              // non-negative) and give a little headroom above 100 for forecasts
+              // that nose above a BA's realized peak.
+              domain={[0, (max: number) => Math.max(105, Math.ceil(max / 10) * 10)]}
             />
             <Tooltip
-              content={<CompareTooltip series={series} />}
+              content={<CompareTooltip series={series} peaks={peaks} />}
               cursor={{ stroke: MUTED, strokeWidth: 1, strokeDasharray: "3 3" }}
             />
             {boundary !== null && (

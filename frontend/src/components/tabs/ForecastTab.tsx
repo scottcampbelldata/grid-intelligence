@@ -120,7 +120,7 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
     ? `Forecast comparison - ${bas.join(" · ")}`
     : `Demand forecast - ${bas[0] ?? ""}`;
   const panelRight = comparing
-    ? `GW · ${forecasts.length} BAs · 72h actual + forecast`
+    ? `normalized · ${forecasts.length} BAs · % of each BA's peak`
     : hasForecast
       ? "GW · 72h actual + forecast"
       : "GW · no current forecast";
