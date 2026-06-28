@@ -19,7 +19,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open <http://localhost:3000>. With no backend running you'll see the loading then
+error states; point `NEXT_PUBLIC_API_BASE` at a real API or run the [mock
+API](#mock-api-ui-dev-without-the-backend) to see live data.
 
 ## Configuration
 
@@ -70,35 +72,60 @@ Cloudflare Pages settings:
 
 ## Project layout
 
-```
+```text
 src/
   app/
-    layout.tsx      fonts + global shell
-    page.tsx        Demand tab (the one built tab)
-    globals.css     Tailwind + base styles
+    layout.tsx      fonts, metadata/OG, global shell
+    page.tsx        renders <Dashboard/>
+    icon.svg        app icon / favicon
+    globals.css     Tailwind base, :focus-visible ring, skeleton + reduced-motion
   components/
-    AppHeader.tsx   title + LIVE indicator + "updated N min ago"
-    LiveIndicator.tsx
-    TabNav.tsx      8-tab nav (only Demand active)
-    Panel.tsx       bordered card with header
-    KpiCard.tsx     big-number KPI + Delta
-    KpiRow.tsx      responsive 4-up grid
-    DemandChart.tsx single-accent area/line chart
+    Dashboard.tsx       shell: header + tab nav + active tabpanel; hash routing
+    AppHeader.tsx       wordmark + product mark + freshness indicator
+    LiveIndicator.tsx   Connecting / Live / Stale / Offline (from data age + error)
+    TabNav.tsx          accessible tablist (roving focus, arrow keys, edge fades)
+    Panel.tsx           bordered card with header
+    PanelState.tsx      shared loading (skeleton) / error+retry / empty body
+    Skeleton.tsx        gradient-sweep loading block (reduced-motion aware)
+    Sparkline.tsx       dependency-free inline trend for headline KPIs
+    KpiCard.tsx         big-number KPI + Delta + optional sparkline
+    KpiRow.tsx          responsive 4-up grid
+    DataTable.tsx       sortable, keyboard-operable table
+    BaCompareSelect.tsx color-chip multi-select for BA comparison
+    *Chart.tsx          Recharts views (Demand, Forecast, Stacked, HBar, TopBa, …)
+    *Map.tsx            react-simple-maps weather maps (US + Europe)
+    ErrorBanner.tsx     top-of-tab fetch-error banner with retry
+    tabs/               one component per dashboard section (10 tabs)
   lib/
     api.ts          typed API client (string→number coercion, UTC parsing)
     format.ts       num(), parseUtc(), unit/percent/time formatters
-    useGridData.ts  client polling hook + useNow() clock
+    palette.ts      multi-series comparison palette
+    status.ts       shared status palette (positive / caution / critical)
+    types.ts        TabMeta (per-tab freshness reported up to the shell)
+    useGridData.ts  client polling hooks + useNow() clock
+    useTabRouting.ts hash <-> active-tab binding (deep-linkable, #forecast)
 ```
 
-## Endpoints used by the Demand tab
+The 10 tabs (`Demand`, `Generation`, `Interchange`, `Anomalies`, `Forecast`,
+`Weather`, `Europe`, `Europe Weather`, `Data Quality`, `Operations`) are all live
+and URL-addressable via the hash (e.g. `#data-quality`).
 
-| UI                     | Endpoint                          |
-| ---------------------- | --------------------------------- |
-| Network demand KPI     | `GET /v1/demand/headline`         |
-| Generation 24h KPI     | `GET /v1/generation/share?hours=24` |
-| Carbon-free share KPI  | `GET /v1/generation/share?hours=24` |
-| Anomalies KPI          | `GET /v1/anomalies/recent?hours=24` |
-| Hourly demand chart    | `GET /v1/demand/latest?hours=24`  |
+## API endpoints
+
+Each tab fetches client-side via the typed helpers in `lib/api.ts`. A summary:
+
+| Tab            | Endpoints                                                        |
+| -------------- | --------------------------------------------------------------- |
+| Demand         | `/v1/demand/headline`, `/v1/demand/latest`, `/v1/generation/share`, `/v1/anomalies/recent` |
+| Generation     | `/v1/generation/share`, `/v1/generation/mix`                    |
+| Interchange    | `/v1/interchange/flows`                                         |
+| Anomalies      | `/v1/anomalies/recent`                                          |
+| Forecast       | `/v1/balancing-authorities`, `/v1/forecast/{ba}`, `/v1/forecast/accuracy` |
+| Weather        | `/v1/weather/latest`                                            |
+| Europe         | `/v1/europe/load`                                               |
+| Europe Weather | `/v1/europe/weather`                                            |
+| Data Quality   | `/v1/validation`                                                |
+| Operations     | `/v1/freshness`, `/v1/ingest-runs`                              |
 
 All numeric fields are coerced via `num()` because the API serializes Postgres
 `numeric`/`Decimal` (and the `sec_since_*` epoch fields) as JSON strings.
