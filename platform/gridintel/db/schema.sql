@@ -207,7 +207,10 @@ CREATE TABLE IF NOT EXISTS ml.demand_forecast (
     yhat_upper     DOUBLE PRECISION,
     model_name     TEXT NOT NULL,
     fit_at_utc     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (period_utc, ba_code, model_name)
+    -- fit_at_utc is part of the key: every run stores a distinct forecast
+    -- vintage (the API/accuracy endpoints pick recent vintages by fit_at_utc).
+    -- The upsert conflict target in ml/jobs.py must match this exactly.
+    PRIMARY KEY (period_utc, ba_code, model_name, fit_at_utc)
 );
 
 CREATE TABLE IF NOT EXISTS ml.demand_anomaly (
