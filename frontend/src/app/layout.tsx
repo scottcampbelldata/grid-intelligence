@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -18,9 +18,29 @@ const mono = IBM_Plex_Mono({
   display: "swap",
 });
 
+const TITLE = "Grid intelligence";
+const DESCRIPTION =
+  "Real-time intelligence over the US and European electricity grids - demand, generation mix, forecasting, anomalies, and data quality.";
+
 export const metadata: Metadata = {
-  title: "Grid intelligence",
-  description: "Real-time intelligence over the US and European electricity grids.",
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: TITLE,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0b0e",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({

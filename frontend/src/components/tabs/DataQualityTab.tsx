@@ -5,6 +5,7 @@ import { DataTable, type Column } from "@/components/DataTable";
 import { KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { PanelState } from "@/components/PanelState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import {
   getValidation,
@@ -14,14 +15,15 @@ import {
   type ValidationStatus,
 } from "@/lib/api";
 import { formatInt } from "@/lib/format";
+import { STATUS } from "@/lib/status";
 import type { TabMeta } from "@/lib/types";
 import { usePolling } from "@/lib/useGridData";
 
-// pass / warn / fail - muted green / gold / red, matching the Operations tab.
+// pass / warn / fail - shared status palette, matching the Operations tab.
 const STATUS_COLOR: Record<string, string> = {
-  pass: "#5ea88a",
-  warn: "#c9a45c",
-  fail: "#d08a8a",
+  pass: STATUS.positive,
+  warn: STATUS.caution,
+  fail: STATUS.critical,
 };
 const STATUS_RANK: Record<string, number> = { fail: 2, warn: 1, pass: 0 };
 
@@ -295,36 +297,41 @@ export function DataQualityTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           label="Checks"
           value={loaded ? formatInt(total) : "-"}
           sub="Data-quality checks"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Passing"
           value={loaded ? formatInt(summary.pass) : "-"}
           sub="Within threshold"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Warnings"
           value={loaded ? formatInt(summary.warn) : "-"}
           sub="Above warn threshold"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Failures"
           value={loaded ? formatInt(summary.fail) : "-"}
           sub={data?.asOf ? `As of ${fmtAsOf(data.asOf)}` : "Above fail threshold"}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
       </KpiRow>
 
       {headline && <p className="mt-4 text-sm text-muted">{headline}</p>}
 
-      {loaded && checks.length === 0 && !error ? (
+      {checks.length === 0 ? (
         <div className="mt-6">
           <Panel title="Validation">
-            <div className="flex h-[200px] items-center justify-center text-sm text-muted">
-              No validation checks returned.
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={200}
+              variant="table"
+              empty="No validation checks returned."
+            />
           </Panel>
         </div>
       ) : (

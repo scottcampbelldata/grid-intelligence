@@ -6,6 +6,7 @@ import { HBarChart, type HBarDatum } from "@/components/HBarChart";
 import { KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { PanelState } from "@/components/PanelState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { getInterchange, type InterchangeFlow } from "@/lib/api";
 import { formatInt } from "@/lib/format";
@@ -98,41 +99,39 @@ export function InterchangeTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           label="Active flows"
           value={loaded && !isEmpty ? formatInt(flows.length) : "-"}
           sub={isEmpty ? "No recent data" : "BA-to-BA pairs"}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Largest flow"
           value={largest ? largest.gw.toFixed(1) : "-"}
           unit={largest ? "GW" : undefined}
           sub={largest ? largest.label : isEmpty ? "No recent data" : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Total interchange"
           value={loaded && !isEmpty ? totalGw.toFixed(1) : "-"}
           unit={loaded && !isEmpty ? "GW" : undefined}
           sub="Sum of absolute flows"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Authorities involved"
           value={loaded && !isEmpty ? formatInt(distinctBas) : "-"}
           sub="Distinct BAs"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
       </KpiRow>
 
       {isEmpty ? (
         <div className="mt-6">
           <Panel title="Interchange flows, last 3 days">
-            <div className="flex h-[280px] flex-col items-center justify-center gap-2 text-center">
-              <span className="text-sm text-text">No recent interchange data</span>
-              <span className="max-w-sm text-xs text-muted">
-                EIA publishes interchange with roughly a 29-hour lag. Even across
-                the last 3 days nothing has been released yet - this will populate
-                once EIA publishes the data.
-              </span>
-            </div>
+            <PanelState
+              loading={false}
+              minHeight={280}
+              empty="No recent interchange data"
+              emptyDetail="EIA publishes interchange with roughly a 29-hour lag. Even across the last 3 days nothing has been released yet - this will populate once EIA publishes the data."
+            />
           </Panel>
         </div>
       ) : (
@@ -145,9 +144,14 @@ export function InterchangeTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
               {bars.length > 0 ? (
                 <HBarChart data={bars} maxBars={10} decimals={2} unit="GW" labelWidth={120} />
               ) : (
-                <div className="flex h-[280px] items-center justify-center text-sm text-muted">
-                  Loading…
-                </div>
+                <PanelState
+                  loading={!loaded && !error}
+                  error={error}
+                  onRetry={refresh}
+                  minHeight={280}
+                  variant="bars"
+                  empty="No interchange flows to chart."
+                />
               )}
             </Panel>
           </div>
@@ -161,9 +165,14 @@ export function InterchangeTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
                   rowKey={(r) => `${r.fromBa}->${r.toBa}`}
                 />
               ) : (
-                <div className="flex h-[200px] items-center justify-center text-sm text-muted">
-                  Loading…
-                </div>
+                <PanelState
+                  loading={!loaded && !error}
+                  error={error}
+                  onRetry={refresh}
+                  minHeight={200}
+                  variant="table"
+                  empty="No flows to list."
+                />
               )}
             </Panel>
           </div>

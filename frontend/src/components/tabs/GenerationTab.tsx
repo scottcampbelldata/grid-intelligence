@@ -6,6 +6,7 @@ import { StackedAreaChart } from "@/components/StackedAreaChart";
 import { KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { PanelState } from "@/components/PanelState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { getGeneration } from "@/lib/api";
 import { formatEnergy } from "@/lib/format";
@@ -56,28 +57,28 @@ export function GenerationTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           value={total.value}
           unit={total.unit}
           sub={share ? `${share.rows.length} fuel types` : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Carbon-free share"
           value={share?.carbonFreePct != null ? share.carbonFreePct.toFixed(1) : "-"}
           unit="%"
           sub="Nuclear, hydro, wind, solar"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Renewable share"
           value={share?.renewablePct != null ? share.renewablePct.toFixed(1) : "-"}
           unit="%"
           sub="Wind, solar, hydro"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Largest source"
           value={topFuel?.pct != null ? topFuel.pct.toFixed(1) : "-"}
           unit="%"
           sub={topFuel ? topFuel.fuelName : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
       </KpiRow>
 
@@ -86,9 +87,13 @@ export function GenerationTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           {data && data.series.length > 0 ? (
             <StackedAreaChart series={data.series} bands={data.bands} />
           ) : (
-            <div className="flex h-[320px] items-center justify-center text-sm text-muted">
-              {loaded ? "No generation data in the last 24 hours." : "Loading…"}
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={320}
+              empty="No generation data in the last 24 hours."
+            />
           )}
         </Panel>
       </div>
@@ -98,9 +103,14 @@ export function GenerationTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           {shareBars.length > 0 ? (
             <HBarChart data={shareBars} maxBars={shareBars.length} decimals={1} unit="%" labelWidth={96} />
           ) : (
-            <div className="flex h-[280px] items-center justify-center text-sm text-muted">
-              {loaded ? "No fuel-share data available." : "Loading…"}
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={280}
+              variant="bars"
+              empty="No fuel-share data available."
+            />
           )}
         </Panel>
       </div>
