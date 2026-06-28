@@ -27,7 +27,9 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 function median(xs: number[]): number {
   if (xs.length === 0) return 0;
   const s = [...xs].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
+  const mid = Math.floor(s.length / 2);
+  // Average the two middle values for even-length input - a true median.
+  return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid];
 }
 
 // Source reporting lags (EIA/ENTSO-E publish the most recent hours late), so the

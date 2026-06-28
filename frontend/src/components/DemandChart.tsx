@@ -51,7 +51,7 @@ function ChartTooltip({ active, payload }: TooltipProps) {
 
 export function DemandChart({ data }: { data: DemandSeriesPoint[] }) {
   return (
-    <div className="h-[320px] w-full">
+    <div className="h-[320px] w-full" role="img" aria-label="Area chart of electricity demand over time">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
           <CartesianGrid stroke={GRID} vertical={false} />

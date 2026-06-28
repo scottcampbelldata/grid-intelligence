@@ -125,7 +125,7 @@ export function ForecastChart({
   return (
     <div>
       <Legend />
-      <div className="h-[340px] w-full">
+      <div className="h-[340px] w-full" role="img" aria-label="Chart of demand actuals and forecast with confidence band">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
             <CartesianGrid stroke={GRID} vertical={false} />

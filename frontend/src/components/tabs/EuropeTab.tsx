@@ -6,6 +6,7 @@ import { KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
 import { StackedAreaChart } from "@/components/StackedAreaChart";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { getEurope } from "@/lib/api";
 import { formatEnergy, formatInt, formatPower } from "@/lib/format";
 import type { TabMeta } from "@/lib/types";
@@ -35,18 +36,7 @@ export function EuropeTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
 
   return (
     <>
-      {error && (
-        <div className="mb-6 flex items-center justify-between gap-4 rounded-md border border-border bg-surface px-5 py-3 text-sm">
-          <span className="text-muted">Couldn&apos;t reach the API - {error}</span>
-          <button
-            type="button"
-            onClick={refresh}
-            className="text-accent transition-opacity hover:opacity-80"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {error && <ErrorBanner error={error} onRetry={refresh} />}
 
       <KpiRow>
         <KpiCard

@@ -1,11 +1,24 @@
 """FastAPI service - JSON endpoints powering the React frontend."""
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+
+# Balancing-authority / bidding-zone codes are short alphanumerics (PJM, CISO,
+# 10YFR-RTE------C). Validate caller-supplied codes against this shape: the SQL
+# already binds them as parameters (no injection risk), but rejecting junk early
+# avoids pointless queries and keeps logs/metrics clean.
+_BA_CODE_RE = re.compile(r"^[A-Za-z0-9_-]{1,20}$")
+
+
+def _require_valid_ba(ba_code: str) -> str:
+    if not _BA_CODE_RE.match(ba_code):
+        raise HTTPException(status_code=422, detail="invalid ba_code")
+    return ba_code
 
 from .. import __version__
 from ..db import get_engine
@@ -271,6 +284,8 @@ def forecast_accuracy(
     joined to actual demand (``raw.demand`` series 'D') and scored with MAPE and
     RMSE, both overall and per balancing authority. Lower is better.
     """
+    if ba_code:
+        _require_valid_ba(ba_code)
     # Only bind :ba when a BA is requested. Comparing a bind to NULL ("IS NULL")
     # leaves its type undetermined for Postgres, and ":ba::text" collides with
     # SQLAlchemy's ":name" bind syntax, so build the filter conditionally.
@@ -337,6 +352,7 @@ def forecast_accuracy(
 
 @app.get("/v1/forecast/{ba_code}")
 def forecast_for(ba_code: str) -> dict[str, Any]:
+    _require_valid_ba(ba_code)
     with get_engine().begin() as conn:
         actual = conn.execute(text("""
             SELECT period_utc, value_mwh
@@ -344,11 +360,16 @@ def forecast_for(ba_code: str) -> dict[str, Any]:
             WHERE ba_code = :ba AND series='D' AND period_utc > now() - interval '72 hours'
             ORDER BY period_utc
         """), {"ba": ba_code}).mappings().all()
+        # ml.demand_forecast keeps every forecast vintage (PK includes
+        # fit_at_utc), so several runs inside the 6h window hold rows for the same
+        # period_utc. Collapse to the latest vintage per period - one forecast
+        # value per hour - the same way /v1/forecast/accuracy does.
         fc = conn.execute(text("""
-            SELECT period_utc, yhat_mwh, yhat_lower, yhat_upper, model_name
+            SELECT DISTINCT ON (period_utc)
+                   period_utc, yhat_mwh, yhat_lower, yhat_upper, model_name
             FROM ml.demand_forecast
             WHERE ba_code = :ba AND fit_at_utc > now() - interval '6 hours'
-            ORDER BY period_utc
+            ORDER BY period_utc, fit_at_utc DESC
         """), {"ba": ba_code}).mappings().all()
     return {
         "ba_code": ba_code,
