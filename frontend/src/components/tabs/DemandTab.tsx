@@ -11,6 +11,7 @@ import {
 import { Delta, KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { PanelState } from "@/components/PanelState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { TopBaChart } from "@/components/TopBaChart";
 import { formatEnergy, formatInt, formatPct, formatPower } from "@/lib/format";
@@ -77,14 +78,14 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           value={demand.value}
           unit={demand.unit}
           sub={<Delta pct={headline?.deltaPct ?? null} />}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Generation, 24h"
           value={gen.value}
           unit={gen.unit}
           sub={generation ? `${generation.rows.length} fuel types` : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Carbon-free share"
@@ -95,13 +96,13 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
               ? `Renewables ${formatPct(generation.renewablePct)}`
               : ""
           }
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Anomalies, 24h"
           value={loaded ? formatInt(anomalies.length) : "-"}
           sub={anomalySub}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
       </KpiRow>
 
@@ -120,9 +121,13 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           {series.length > 0 ? (
             <DemandChart data={series} />
           ) : (
-            <div className="flex h-[320px] items-center justify-center text-sm text-muted">
-              {loaded ? "No demand data in the last 24 hours." : "Loading…"}
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={320}
+              empty="No demand data in the last 24 hours."
+            />
           )}
         </Panel>
       </div>
@@ -148,15 +153,21 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
               {compareRows.length > 0 ? (
                 <DemandCompareChart rows={compareRows} lines={compareLines} />
               ) : (
-                <div className="flex h-[320px] items-center justify-center text-sm text-muted">
-                  Select balancing authorities to compare.
-                </div>
+                <PanelState
+                  loading={false}
+                  minHeight={320}
+                  empty="Select balancing authorities to compare."
+                />
               )}
             </>
           ) : (
-            <div className="flex h-[320px] items-center justify-center text-sm text-muted">
-              {loaded ? "No balancing-authority data available." : "Loading…"}
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={320}
+              empty="No balancing-authority data available."
+            />
           )}
         </Panel>
       </div>
@@ -166,9 +177,14 @@ export function DemandTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           {byBa.length > 0 ? (
             <TopBaChart data={byBa} />
           ) : (
-            <div className="flex h-[280px] items-center justify-center text-sm text-muted">
-              {loaded ? "No balancing-authority data available." : "Loading…"}
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={280}
+              variant="bars"
+              empty="No balancing-authority data available."
+            />
           )}
         </Panel>
       </div>

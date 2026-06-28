@@ -9,10 +9,12 @@ interface Props {
 
 export function Panel({ title, right, children, className = "" }: Props) {
   return (
-    <section className={`rounded-md border border-border bg-surface ${className}`}>
+    <section
+      className={`rounded-md border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.25)] ${className}`}
+    >
       {(title || right) && (
         <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-3">
-          {title && <h2 className="text-sm text-text">{title}</h2>}
+          {title && <h2 className="text-sm font-medium text-text">{title}</h2>}
           {right && <div className="text-xs text-muted">{right}</div>}
         </div>
       )}

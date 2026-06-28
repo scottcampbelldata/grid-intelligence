@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/DataTable";
 import { KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { PanelState } from "@/components/PanelState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { getEuropeWeather, type EuropeWeatherZone } from "@/lib/api";
 import { formatInt } from "@/lib/format";
@@ -126,28 +127,28 @@ export function EuropeWeatherTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           label="Zones tracked"
           value={loaded ? formatInt(zones.length) : "-"}
           sub="Bidding-zone centroids"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Warmest"
           value={fmtTemp(warmest?.tempC ?? null)}
           unit={warmest ? "°C" : undefined}
           sub={warmest ? warmest.name : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Coolest"
           value={fmtTemp(coolest?.tempC ?? null)}
           unit={coolest ? "°C" : undefined}
           sub={coolest ? coolest.name : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Windiest"
           value={windiest?.windKph != null ? windiest.windKph.toFixed(0) : "-"}
           unit={windiest?.windKph != null ? "km/h" : undefined}
           sub={windiest ? windiest.name : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
       </KpiRow>
 
@@ -157,9 +158,7 @@ export function EuropeWeatherTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           right={<span>Open-Meteo forecast · future-dated</span>}
         >
           {isEmpty ? (
-            <div className="flex h-[500px] items-center justify-center text-sm text-muted">
-              No weather forecast available.
-            </div>
+            <PanelState loading={false} minHeight={500} empty="No weather forecast available." />
           ) : zones.length > 0 ? (
             <>
               <p className="mb-4 max-w-2xl text-xs text-muted">
@@ -170,9 +169,13 @@ export function EuropeWeatherTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
               <EuropeWeatherMap stations={zones} />
             </>
           ) : (
-            <div className="flex h-[500px] items-center justify-center text-sm text-muted">
-              Loading…
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={500}
+              empty="No weather forecast available."
+            />
           )}
         </Panel>
       </div>

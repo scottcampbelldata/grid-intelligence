@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { formatSignedPct } from "@/lib/format";
+import { Skeleton } from "./Skeleton";
 
 interface Props {
   label: string;
@@ -11,19 +12,29 @@ interface Props {
 
 export function KpiCard({ label, value, unit, sub, loading = false }: Props) {
   return (
-    <div className="rounded-md border border-border bg-surface px-5 py-4">
+    <div className="group rounded-md border border-border bg-surface px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.25)] transition-colors hover:border-border/80 hover:bg-surface-hover">
       <div className="text-xs uppercase tracking-[0.12em] text-muted">{label}</div>
-      <div
-        className={`mt-3 flex items-baseline transition-opacity ${
-          loading ? "opacity-40" : "opacity-100"
-        }`}
-      >
-        <span className="font-mono text-[2rem] font-medium leading-none tracking-[-0.02em] tabular-nums text-text">
-          {value}
-        </span>
-        {unit && <span className="ml-1.5 text-sm font-normal text-muted">{unit}</span>}
-      </div>
-      <div className="mt-2 h-4 text-xs text-muted">{sub}</div>
+
+      {loading ? (
+        // Skeleton sized to the eventual numeral so the card doesn't resize on
+        // load. Matches the value/sub rows below in height.
+        <>
+          <Skeleton className="mt-3 h-8 w-28" />
+          <div className="mt-2 h-4">
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mt-3 flex items-baseline">
+            <span className="font-mono text-[2rem] font-medium leading-none tracking-[-0.02em] tabular-nums text-text">
+              {value}
+            </span>
+            {unit && <span className="ml-1.5 text-sm font-normal text-muted">{unit}</span>}
+          </div>
+          <div className="mt-2 h-4 text-xs text-muted">{sub}</div>
+        </>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { PanelState } from "@/components/PanelState";
 import {
   getBalancingAuthorities,
   getForecast,
@@ -179,28 +180,28 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
             value={latest.value}
             unit={latest.unit}
             sub={single?.lastActual ? shortTime(single.lastActual.t) : ""}
-            loading={!loaded}
+            loading={!loaded && !error}
           />
           <KpiCard
             label="Next forecast"
             value={next.value}
             unit={next.unit}
             sub={single?.firstForecast ? shortTime(single.firstForecast.t) : "No current forecast"}
-            loading={!loaded}
+            loading={!loaded && !error}
           />
           <KpiCard
             label="Forecast peak"
             value={peak.value}
             unit={peak.unit}
             sub={single?.peakForecast ? shortTime(single.peakForecast.t) : ""}
-            loading={!loaded}
+            loading={!loaded && !error}
           />
           <KpiCard
             label="Forecast horizon"
             value={loaded ? `${single?.horizonHours ?? 0}` : "-"}
             unit={loaded ? "h" : undefined}
             sub={single?.modelName ?? ""}
-            loading={!loaded}
+            loading={!loaded && !error}
           />
         </KpiRow>
       )}
@@ -214,9 +215,13 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
               <ForecastChart points={single!.points} boundaryT={single!.boundaryT} />
             )
           ) : (
-            <div className="flex h-[340px] items-center justify-center text-sm text-muted">
-              {loaded ? `No demand or forecast data for ${bas.join(", ")}.` : "Loading…"}
-            </div>
+            <PanelState
+              loading={!loaded && !error}
+              error={error}
+              onRetry={refresh}
+              minHeight={340}
+              empty={`No demand or forecast data for ${bas.join(", ")}.`}
+            />
           )}
         </Panel>
       </div>
@@ -248,9 +253,11 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
               </p>
             </>
           ) : (
-            <div className="flex h-[120px] items-center justify-center text-sm text-muted">
-              {accLoaded ? "No backtest available for this selection." : "Loading…"}
-            </div>
+            <PanelState
+              loading={!accLoaded}
+              minHeight={120}
+              empty="No backtest available for this selection."
+            />
           )}
         </Panel>
       </div>
