@@ -12,13 +12,8 @@ import {
   YAxis,
 } from "recharts";
 import { formatGwTick, formatHour } from "@/lib/format";
+import { useThemeColors } from "@/lib/useThemeColors";
 import type { ForecastPoint } from "@/lib/api";
-
-const ACCENT = "#4f8bf5";
-const ACTUAL = "#c7ccd6"; // neutral light - realized history
-const BORDER = "#23262d";
-const GRID = "#1a1d23";
-const MUTED = "#8b919e";
 
 interface Row extends ForecastPoint {
   band: [number, number] | null;
@@ -73,17 +68,18 @@ function ForecastTooltip({ active, payload }: TooltipProps) {
 }
 
 function Legend() {
+  const { accent, accentLine, overlay } = useThemeColors();
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
       <span className="inline-flex items-center gap-1.5">
-        <span className="inline-block h-0.5 w-4" style={{ backgroundColor: ACTUAL }} />
+        <span className="inline-block h-0.5 w-4" style={{ backgroundColor: accentLine }} />
         Actual
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span
           className="inline-block h-0.5 w-4"
           style={{
-            backgroundImage: `repeating-linear-gradient(90deg, ${ACCENT} 0 4px, transparent 4px 7px)`,
+            backgroundImage: `repeating-linear-gradient(90deg, ${accent} 0 4px, transparent 4px 7px)`,
           }}
         />
         Forecast
@@ -91,7 +87,7 @@ function Legend() {
       <span className="inline-flex items-center gap-1.5">
         <span
           className="inline-block h-2 w-4 rounded-[1px]"
-          style={{ backgroundColor: "rgba(79,139,245,0.18)" }}
+          style={{ backgroundColor: overlay.band }}
         />
         Confidence band
       </span>
@@ -106,6 +102,7 @@ export function ForecastChart({
   points: ForecastPoint[];
   boundaryT: number | null;
 }) {
+  const { accent, accentLine, border, grid, muted } = useThemeColors();
   const data: Row[] = points.map((p) => ({
     ...p,
     band: p.lower !== null && p.upper !== null ? [p.lower, p.upper] : null,
@@ -128,22 +125,22 @@ export function ForecastChart({
       <div className="h-[340px] w-full" role="img" aria-label="Chart of demand actuals and forecast with confidence band">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
-            <CartesianGrid stroke={GRID} vertical={false} />
+            <CartesianGrid stroke={grid} vertical={false} />
             <XAxis
               dataKey="t"
               type="number"
               scale="time"
               domain={["dataMin", "dataMax"]}
               tickFormatter={formatHour}
-              tick={{ fontSize: 11, fill: MUTED }}
+              tick={{ fontSize: 11, fill: muted }}
               tickLine={false}
               tickMargin={10}
-              axisLine={{ stroke: BORDER }}
+              axisLine={{ stroke: border }}
               minTickGap={48}
             />
             <YAxis
               tickFormatter={formatGwTick}
-              tick={{ fontSize: 11, fill: MUTED }}
+              tick={{ fontSize: 11, fill: muted }}
               tickLine={false}
               tickMargin={8}
               axisLine={false}
@@ -154,27 +151,27 @@ export function ForecastChart({
             />
             <Tooltip
               content={<ForecastTooltip />}
-              cursor={{ stroke: MUTED, strokeWidth: 1, strokeDasharray: "3 3" }}
+              cursor={{ stroke: muted, strokeWidth: 1, strokeDasharray: "3 3" }}
             />
             {boundaryT !== null && (
               <ReferenceLine
                 x={boundaryT}
-                stroke={MUTED}
+                stroke={muted}
                 strokeDasharray="3 3"
-                label={{ value: "now", fill: MUTED, fontSize: 11, position: "insideTopRight" }}
+                label={{ value: "now", fill: muted, fontSize: 11, position: "insideTopRight" }}
               />
             )}
             <Area
               dataKey="band"
               stroke="none"
-              fill={ACCENT}
+              fill={accent}
               fillOpacity={0.14}
               isAnimationActive={false}
               connectNulls={false}
             />
             <Line
               dataKey="actual"
-              stroke={ACTUAL}
+              stroke={accentLine}
               strokeWidth={1.5}
               dot={false}
               isAnimationActive={false}
@@ -182,7 +179,7 @@ export function ForecastChart({
             />
             <Line
               dataKey="yhat"
-              stroke={ACCENT}
+              stroke={accent}
               strokeWidth={1.75}
               strokeDasharray="5 3"
               dot={false}

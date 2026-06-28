@@ -15,19 +15,15 @@ import {
   type SourceStatus,
 } from "@/lib/api";
 import { agoFromSeconds, formatInt } from "@/lib/format";
-import { STATUS, statusColor } from "@/lib/status";
 import type { TabMeta } from "@/lib/types";
+import { useThemeColors } from "@/lib/useThemeColors";
 import { usePolling } from "@/lib/useGridData";
 
-const STATUS_COLOR: Record<SourceStatus, string> = {
-  ok: STATUS.positive,
-  stale: STATUS.caution,
-  error: STATUS.critical,
-};
 const STATUS_RANK: Record<SourceStatus, number> = { error: 2, stale: 1, ok: 0 };
 
 function StatusDot({ status }: { status: SourceStatus }) {
-  const color = STATUS_COLOR[status];
+  const { statusColor } = useThemeColors();
+  const color = statusColor(status);
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
@@ -37,9 +33,6 @@ function StatusDot({ status }: { status: SourceStatus }) {
     </span>
   );
 }
-
-// Ingest-run status uses the same vocabulary mapping as everything else.
-const runColor = statusColor;
 
 function fmtTime(d: Date | null): string {
   if (!d) return "-";
@@ -69,6 +62,8 @@ export function OperationsTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
     onMeta({ lastUpdated, error });
   }, [lastUpdated, error, onMeta]);
 
+  // Ingest-run status uses the same vocabulary mapping as everything else.
+  const { statusColor: runColor } = useThemeColors();
   const loaded = lastUpdated !== null;
   const freshness = data?.freshness ?? [];
   const runs = data?.runs ?? [];

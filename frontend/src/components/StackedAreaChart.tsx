@@ -10,34 +10,14 @@ import {
   YAxis,
 } from "recharts";
 import { formatHour } from "@/lib/format";
+import { useThemeColors } from "@/lib/useThemeColors";
 import type { GenBand, GenStackPoint } from "@/lib/api";
 
 // Generic stacked-area chart (GW) used wherever a quantity decomposes into a
 // handful of named bands over time - Generation (fuel mix) and Europe (load by
-// bidding zone). Bands are pre-grouped (top-N + "Other") by the caller.
-const BORDER = "#23262d";
-const GRID = "#1a1d23";
-const MUTED = "#8b919e";
-
-// Muted but distinguishable palette - desaturated tones across a controlled
-// range (accent blue, teal, slate, warm gold, sage, periwinkle, clay, mauve) so
-// up to 8 bands read clearly without becoming a rainbow. Ordered for
-// adjacent-band contrast.
-const RAMP = [
-  "#4f8bf5", // blue
-  "#54a39b", // teal
-  "#8b909c", // slate
-  "#c2a25e", // gold
-  "#6fa07a", // sage
-  "#7d7fb8", // periwinkle
-  "#bd8a6b", // clay
-  "#b3859b", // mauve
-];
-const OTHER = "#3f4654";
-
-function colorFor(band: GenBand, i: number): string {
-  return band.code === "__other__" ? OTHER : (RAMP[i] ?? OTHER);
-}
+// bidding zone). Bands are pre-grouped (top-N + "Other") by the caller. The band
+// ramp (up to 8 distinguishable tones + an "Other" rollup) is theme-aware and
+// lives in lib/theme-colors.ts.
 
 interface ColoredBand {
   label: string;
@@ -96,6 +76,9 @@ export function StackedAreaChart({
   series: GenStackPoint[];
   bands: GenBand[];
 }) {
+  const tc = useThemeColors();
+  const colorFor = (band: GenBand, i: number): string =>
+    band.code === "__other__" ? tc.bandOther : (tc.bands[i] ?? tc.bandOther);
   const colored: ColoredBand[] = bands.map((b, i) => ({
     label: b.label,
     color: colorFor(b, i),
@@ -131,22 +114,22 @@ export function StackedAreaChart({
         <div className="h-[320px] w-full" role="img" aria-label="Stacked area chart of generation by fuel type over time">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={series} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
-            <CartesianGrid stroke={GRID} vertical={false} />
+            <CartesianGrid stroke={tc.grid} vertical={false} />
             <XAxis
               dataKey="t"
               type="number"
               scale="time"
               domain={["dataMin", "dataMax"]}
               tickFormatter={formatHour}
-              tick={{ fontSize: 11, fill: MUTED }}
+              tick={{ fontSize: 11, fill: tc.muted }}
               tickLine={false}
               tickMargin={10}
-              axisLine={{ stroke: BORDER }}
+              axisLine={{ stroke: tc.border }}
               minTickGap={48}
             />
             <YAxis
               tickFormatter={(v) => `${Math.round(v / 1_000)}`}
-              tick={{ fontSize: 11, fill: MUTED }}
+              tick={{ fontSize: 11, fill: tc.muted }}
               tickLine={false}
               tickMargin={8}
               axisLine={false}
@@ -154,7 +137,7 @@ export function StackedAreaChart({
             />
             <Tooltip
               content={<StackTooltip bands={colored} />}
-              cursor={{ stroke: MUTED, strokeWidth: 1, strokeDasharray: "3 3" }}
+              cursor={{ stroke: tc.muted, strokeWidth: 1, strokeDasharray: "3 3" }}
             />
             {colored.map((b) => (
               <Area

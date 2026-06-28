@@ -16,7 +16,9 @@ export function Sparkline({
   values,
   width = 76,
   height = 28,
-  color = "#4f8bf5",
+  // Inherits the element's text color by default, so it follows the theme accent
+  // (set via a `text-accent` class on the parent) and flips with light/dark.
+  color = "currentColor",
   className = "",
 }: Props) {
   const clean = values.filter((v) => Number.isFinite(v));
