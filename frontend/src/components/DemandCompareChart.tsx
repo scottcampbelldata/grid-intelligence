@@ -89,7 +89,7 @@ export function DemandCompareChart({
           </span>
         ))}
       </div>
-      <div className="h-[320px] w-full">
+      <div className="h-[320px] w-full" role="img" aria-label="Line chart comparing electricity demand across balancing authorities">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
             <CartesianGrid stroke={GRID} vertical={false} />

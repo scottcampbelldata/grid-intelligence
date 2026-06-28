@@ -60,10 +60,32 @@ export function DataTable<T>({ columns, rows, rowKey, initialSort }: Props<T>) {
             {columns.map((c) => {
               const sortable = Boolean(c.sortValue);
               const isActive = sort?.key === c.key;
+              // Sortable headers are operable by keyboard (Enter/Space) and
+              // expose aria-sort so screen readers announce the sort state.
+              const ariaSort = sortable
+                ? isActive
+                  ? sort?.dir === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : "none"
+                : undefined;
               return (
                 <th
                   key={c.key}
+                  aria-sort={ariaSort}
+                  role={sortable ? "button" : undefined}
+                  tabIndex={sortable ? 0 : undefined}
                   onClick={sortable ? () => toggleSort(c.key) : undefined}
+                  onKeyDown={
+                    sortable
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggleSort(c.key);
+                          }
+                        }
+                      : undefined
+                  }
                   className={`whitespace-nowrap px-3 py-2 text-xs font-normal uppercase tracking-[0.08em] ${
                     c.align === "right" ? "text-right" : "text-left"
                   } ${
