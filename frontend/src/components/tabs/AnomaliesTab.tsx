@@ -8,22 +8,25 @@ import { HBarChart, type HBarDatum } from "@/components/HBarChart";
 import { KpiCard } from "@/components/KpiCard";
 import { KpiRow } from "@/components/KpiRow";
 import { Panel } from "@/components/Panel";
+import { PanelState } from "@/components/PanelState";
 import { getRecentAnomalies, type Anomaly } from "@/lib/api";
 import { formatInt } from "@/lib/format";
+import { STATUS } from "@/lib/status";
 import type { TabMeta } from "@/lib/types";
 import { usePolling } from "@/lib/useGridData";
 
 const WINDOW_HOURS = 48;
 
-// Severity → restrained semantic color (the one sanctioned color exception).
-// Muted red for critical, muted amber for warn, neutral otherwise.
+// Severity → restrained semantic color (the one sanctioned color exception),
+// sourced from the shared status palette. Critical → red, warn/high → amber,
+// moderate/low → neutral.
 function severityStyle(sev: string): { color: string; rank: number } {
   const s = sev.toLowerCase();
-  if (s.includes("crit")) return { color: "#d08a8a", rank: 3 };
+  if (s.includes("crit")) return { color: STATUS.critical, rank: 3 };
   if (s.includes("warn") || s.includes("high") || s.includes("sev"))
-    return { color: "#c9a45c", rank: 2 };
-  if (s.includes("mod")) return { color: "#8b919e", rank: 1 };
-  return { color: "#8b919e", rank: 0 };
+    return { color: STATUS.caution, rank: 2 };
+  if (s.includes("mod")) return { color: STATUS.neutral, rank: 1 };
+  return { color: STATUS.neutral, rank: 0 };
 }
 
 function isCritical(a: Anomaly) {
@@ -153,34 +156,36 @@ export function AnomaliesTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           label="Anomalies, 48h"
           value={loaded ? formatInt(anomalies.length) : "-"}
           sub="Detected via diurnal z-score"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Critical"
           value={loaded ? formatInt(critical) : "-"}
           sub="Severity critical"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Warn"
           value={loaded ? formatInt(warn) : "-"}
           sub="Severity warn / high"
-          loading={!loaded}
+          loading={!loaded && !error}
         />
         <KpiCard
           label="Peak z-score"
           value={peak?.zScore != null ? Math.abs(peak.zScore).toFixed(1) : "-"}
           sub={peak ? `${peak.baCode} · ${fmtTime(peak.periodUtc)}` : ""}
-          loading={!loaded}
+          loading={!loaded && !error}
         />
       </KpiRow>
 
       {isEmpty ? (
         <div className="mt-6">
           <Panel title="Demand anomalies, last 48 hours">
-            <div className="flex h-[240px] items-center justify-center text-sm text-muted">
-              No anomalies detected in the last 48 hours.
-            </div>
+            <PanelState
+              loading={false}
+              minHeight={240}
+              empty="No anomalies detected in the last 48 hours."
+            />
           </Panel>
         </div>
       ) : (
@@ -202,9 +207,14 @@ export function AnomaliesTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
                   rowKey={(r, i) => `${r.baCode}-${r.periodUtc?.getTime() ?? i}`}
                 />
               ) : (
-                <div className="flex h-[200px] items-center justify-center text-sm text-muted">
-                  Loading…
-                </div>
+                <PanelState
+                  loading={!loaded && !error}
+                  error={error}
+                  onRetry={refresh}
+                  minHeight={200}
+                  variant="table"
+                  empty="No anomalies to list."
+                />
               )}
             </Panel>
           </div>

@@ -37,6 +37,19 @@ real Droplet API, open an SSH tunnel and leave the default value:
 ssh -N -L 8787:127.0.0.1:8787 <user>@<droplet-ip>
 ```
 
+### Mock API (UI dev without the backend)
+
+To exercise the full UI - including the happy path for every tab - without the
+Python platform, run the zero-dependency mock on `:8787`:
+
+```bash
+node scripts/mock-api.mjs            # synthetic but realistically-shaped /v1 data
+DELAY=4000 node scripts/mock-api.mjs # add latency to see loading skeletons
+```
+
+It serves every `/v1/*` endpoint the dashboard reads, with permissive CORS.
+Dev-only - not part of the build.
+
 > **Deploy note:** on the Droplet, nginx currently proxies only the Streamlit
 > dashboard at `grid.scottcampbell.io`. To use this frontend in production the
 > FastAPI service needs a public origin (e.g. `https://api.grid.scottcampbell.io`)
