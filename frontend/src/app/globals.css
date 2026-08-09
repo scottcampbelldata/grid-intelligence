@@ -15,16 +15,16 @@
 :root {
   color-scheme: dark;
 
-  --c-bg: 10 11 14; /* page background - near-black */
-  --c-surface: 19 21 25; /* cards / panels */
-  --c-surface-hover: 26 29 35;
-  --c-border: 35 38 45; /* hairline dividers */
-  --c-text: 229 231 235; /* primary text - off-white, not pure white */
-  --c-muted: 139 145 158; /* labels, secondary text */
-  --c-accent: 79 139 245; /* the one accent: chart line, live dot, active tab */
-  --c-positive: 94 168 138; /* ok / pass / healthy */
-  --c-caution: 201 164 92; /* warn / stale / advisory */
-  --c-critical: 208 138 138; /* fail / error / critical */
+  --c-bg: 13 20 28;
+  --c-surface: 20 31 42;
+  --c-surface-hover: 27 41 54;
+  --c-border: 41 58 74;
+  --c-text: 233 237 242;
+  --c-muted: 154 168 184;
+  --c-accent: 145 180 239;
+  --c-positive: 110 184 151;
+  --c-caution: 215 178 102;
+  --c-critical: 224 139 139;
 
   /* Non-tokenized surface details (no alpha-modifier use, so kept as values). */
   --c-scrollbar: 35 38 45;
@@ -39,16 +39,16 @@
 html.light {
   color-scheme: light;
 
-  --c-bg: 246 245 242; /* warm paper */
+  --c-bg: 245 247 249;
   --c-surface: 255 255 255; /* cards / panels */
-  --c-surface-hover: 240 239 235;
-  --c-border: 228 226 220; /* hairline dividers */
-  --c-text: 26 29 35; /* ink - mirrors the dark surface tone */
-  --c-muted: 107 114 128; /* ~5:1 on paper - passes AA for text */
-  --c-accent: 47 111 224; /* deepened blue - ~4.8:1 on white */
+  --c-surface-hover: 238 242 246;
+  --c-border: 215 221 228;
+  --c-text: 22 31 44;
+  --c-muted: 84 98 116;
+  --c-accent: 36 86 166;
   --c-positive: 47 125 91;
   --c-caution: 138 106 34;
-  --c-critical: 176 74 69;
+  --c-critical: 168 61 74;
 
   --c-scrollbar: 205 203 196;
   --c-skeleton-base: 236 234 228;

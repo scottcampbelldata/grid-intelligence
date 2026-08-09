@@ -36,17 +36,17 @@ export interface ThemeColors {
 }
 
 const DARK: ThemeColors = {
-  bg: "#0a0b0e",
-  surface: "#131519",
-  border: "#23262d",
-  grid: "#1a1d23",
-  muted: "#8b919e",
-  text: "#e5e7eb",
-  accent: "#4f8bf5",
+  bg: "#0d141c",
+  surface: "#141f2a",
+  border: "#293a4a",
+  grid: "#1b2936",
+  muted: "#9aa8b8",
+  text: "#e9edf2",
+  accent: "#91b4ef",
   accentLine: "#c7ccd6",
   overlay: {
-    band: "rgba(79,139,245,0.18)",
-    barCursor: "rgba(79,139,245,0.06)",
+    band: "rgba(145,180,239,0.18)",
+    barCursor: "rgba(145,180,239,0.06)",
   },
   map: {
     land: "#272d3a",
@@ -73,15 +73,15 @@ const DARK: ThemeColors = {
 const LIGHT: ThemeColors = {
   bg: "#ffffff", // tooltips read as white cards on paper
   surface: "#ffffff",
-  border: "#e4e2dc",
-  grid: "#efeee9", // one step LIGHTER than the border so it recedes (inverted from dark)
-  muted: "#6b7280",
-  text: "#1a1d23",
-  accent: "#2f6fe0",
+  border: "#d7dde4",
+  grid: "#edf1f5",
+  muted: "#546274",
+  text: "#161f2c",
+  accent: "#2456a6",
   accentLine: "#9aa0ac", // neutral grey realized-history line on white
   overlay: {
-    band: "rgba(47,111,224,0.14)",
-    barCursor: "rgba(47,111,224,0.07)",
+    band: "rgba(36,86,166,0.14)",
+    barCursor: "rgba(36,86,166,0.07)",
   },
   map: {
     land: "#eceae3", // land lifted just off the white panel
