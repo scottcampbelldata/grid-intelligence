@@ -1,8 +1,8 @@
 # Architecture
 
 Deep dive into how the platform is wired together. The headline diagram lives
-in the [main README](../README.md#%EF%B8%8F-architecture); this document is
-the longer-form rationale for the senior reviewer.
+in the [main README](../README.md#architecture); this document is
+the longer-form rationale.
 
 ---
 

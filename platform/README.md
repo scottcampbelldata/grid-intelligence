@@ -1,9 +1,9 @@
-# ⚡ Grid Intelligence Platform
+# Grid Intelligence Platform
 
 **A real-time intelligence platform that streams every hour of US (EIA) and
 European (ENTSO-E) electricity grid data into a TimescaleDB warehouse, runs
 anomaly detection and a 24-hour demand forecast on it, and serves it through a
-FastAPI JSON service and a senior-grade React dashboard
+FastAPI JSON service and a React dashboard
 ([grid.scottcampbell.io](https://grid.scottcampbell.io)).**
 
 <p>
@@ -22,7 +22,7 @@ FastAPI JSON service and a senior-grade React dashboard
 
 ---
 
-## 📊 What the platform tracks
+## What the platform tracks
 
 Every hour, three independent streaming jobs land fresh observations into a
 **TimescaleDB hypertable** layout. dbt models them, ML scores them, FastAPI
@@ -56,13 +56,12 @@ data on the EIA / ENTSO-E / NOAA cron cadence (see "Streaming cadence" below).
 
 ---
 
-## 🖥️ The dashboard
+## The dashboard
 
 **Live at [grid.scottcampbell.io](https://grid.scottcampbell.io)** - a React SPA
 deployed on **Cloudflare Pages**, talking to the FastAPI service at
 [api.grid.scottcampbell.io](https://api.grid.scottcampbell.io). Dark theme,
-mobile-responsive, **auto-refreshes every 60s**. Built so a senior hiring
-manager can look at it on a phone in 10 seconds and read the story.
+mobile-responsive, **auto-refreshes every 60s**.
 
 ![Executive dashboard](docs/images/dashboard.png)
 
@@ -96,7 +95,7 @@ Build guide: **[powerbi/README.md](powerbi/README.md)**.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -165,7 +164,7 @@ natural composite (period, BA, [series], [source]). Late-arriving facts
 
 ---
 
-## 🧰 Tech stack
+## Tech stack
 
 | Layer | Tooling |
 |---|---|
@@ -181,7 +180,7 @@ natural composite (period, BA, [series], [source]). Late-arriving facts
 
 ---
 
-## 🚀 Quickstart - Windows, no Docker, no admin
+## Quickstart (Windows, no Docker, no admin)
 
 The warehouse is **native PostgreSQL** + **TimescaleDB** with neither installer
 requiring admin once the EDB binaries are unzipped into a user-owned folder.
@@ -255,7 +254,7 @@ python -m gridintel.cli status
 
 ---
 
-## 📂 Repository layout
+## Repository layout
 
 ```
 grid-intelligence-platform/
@@ -304,7 +303,7 @@ grid-intelligence-platform/
 
 ---
 
-## 🔬 The ML layer
+## The ML layer
 
 Two pieces, both lightweight enough to retrain every 30 minutes per BA:
 
@@ -328,9 +327,9 @@ across BAs without blocking the AsyncIO scheduler.
 
 ---
 
-## ✅ What this demonstrates (for senior data-engineering hiring)
+## What this covers
 
-| Senior-DE capability | Where it shows up |
+| Area | Where it shows up |
 |---|---|
 | **Streaming / real-time ingestion** | 3 independent async clients on independent cron cadences, idempotent upserts, retry policy with exponential jitter, per-source freshness SLA enforced by dbt source `freshness:` blocks |
 | **Time-series at scale**            | **TimescaleDB hypertables**, **continuous aggregates** for 1h/24h rollups, compression after 7d, 730d retention policy, all set up without admin |
@@ -345,7 +344,7 @@ across BAs without blocking the AsyncIO scheduler.
 
 ---
 
-## 🧪 Data & integrity
+## Data & integrity
 
 * **EIA v2 RTO endpoints.** US government, [public domain](https://www.eia.gov/about/copyrights_reuse.php).
   Hourly demand, demand forecast, net generation by fuel type, and inter-BA
@@ -367,7 +366,7 @@ across BAs without blocking the AsyncIO scheduler.
 
 ---
 
-## 👤 Author
+## Author
 
 **Scott Campbell** - Business Intelligence & Data Engineering.
 M.S. in IT/IS Management (BI track), University of Arizona.

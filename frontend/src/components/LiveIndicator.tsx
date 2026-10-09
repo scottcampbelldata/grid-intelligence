@@ -1,4 +1,4 @@
-// Honest connection/freshness state. Unlike a binary live/offline flag, this
+// Connection/freshness state. Unlike a binary live/offline flag, this
 // distinguishes four cases the dashboard actually has: still waiting on the
 // first response, fresh, gone stale (data is arriving but old), and offline
 // (fetch failing). The dot color and label follow the status palette.
