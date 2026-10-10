@@ -38,7 +38,8 @@ export function Dashboard() {
     <div className="min-h-screen bg-bg">
       <AppHeader lastUpdated={meta.lastUpdated} now={now} error={meta.error} />
       <TabNav active={active} enabled={ENABLED} onSelect={handleSelect} />
-      <main
+      <main>
+      <div
         id={tabPanelId(active)}
         role="tabpanel"
         aria-labelledby={tabId(active)}
@@ -55,6 +56,7 @@ export function Dashboard() {
         {active === "Europe Weather" && <EuropeWeatherTab onMeta={setMeta} />}
         {active === "Data Quality" && <DataQualityTab onMeta={setMeta} />}
         {active === "Operations" && <OperationsTab onMeta={setMeta} />}
+      </div>
       </main>
     </div>
   );
