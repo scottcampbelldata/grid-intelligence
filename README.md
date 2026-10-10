@@ -1,5 +1,9 @@
 # Grid Intelligence
 
+**A live dashboard of US and European electricity grid data, with demand forecasts and anomaly alerts.**
+
+Live at [grid.scottcampbell.io](https://grid.scottcampbell.io). More of my work is at [scottcampbell.io](https://scottcampbell.io).
+
 Real-time electricity grid intelligence system. Monorepo containing the backend
 platform and the dashboard frontend.
 
