@@ -19,24 +19,58 @@ const mono = IBM_Plex_Mono({
   display: "swap",
 });
 
-const TITLE = "Grid intelligence";
-const DESCRIPTION =
-  "Real-time intelligence over the US and European electricity grids - demand, generation mix, forecasting, anomalies, and data quality.";
-
 export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  applicationName: TITLE,
+  metadataBase: new URL("https://grid.scottcampbell.io"),
+  title: "Grid Intelligence: US and Europe electricity demand dashboard",
+  description:
+    "Electricity grid dashboard for the US and Europe: demand, generation mix, demand forecast accuracy against EIA, anomaly detection and data quality.",
+  applicationName: "Grid Intelligence",
+  authors: [{ name: "Scott Campbell", url: "https://scottcampbell.io/" }],
+  alternates: { canonical: "/" },
   openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
     type: "website",
+    url: "/",
+    siteName: "Grid Intelligence",
+    title: "Grid Intelligence: US and Europe electricity demand dashboard",
+    description: "Electricity grid dashboard for the US and Europe: demand, generation mix, demand forecast accuracy against EIA, anomaly detection and data quality.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Grid Intelligence dashboard showing US electricity demand" }],
   },
   twitter: {
-    card: "summary",
-    title: TITLE,
-    description: DESCRIPTION,
+    card: "summary_large_image",
+    title: "Grid Intelligence: US and Europe electricity demand dashboard",
+    description: "Electricity grid dashboard for the US and Europe: demand, generation mix, demand forecast accuracy against EIA, anomaly detection and data quality.",
+    images: ["/og-image.png"],
   },
+};
+
+// Structured data for search engines.
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Grid Intelligence",
+  "url": "https://grid.scottcampbell.io/",
+  "description": "Electricity grid dashboard for the US and Europe: demand, generation mix, demand forecast accuracy against EIA, anomaly detection and data quality.",
+  "applicationCategory": "ReferenceApplication",
+  "operatingSystem": "Any (web browser)",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Scott Campbell",
+    "url": "https://scottcampbell.io/"
+  },
+  "subjectOf": {
+    "@type": "CreativeWork",
+    "name": "Grid Intelligence case study",
+    "url": "https://scottcampbell.io/projects/grid-intelligence/"
+  },
+  "sameAs": [
+    "https://github.com/scottcampbelldata/grid-intelligence"
+  ]
 };
 
 export const viewport: Viewport = {
@@ -58,6 +92,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
         <ThemeProvider>{children}</ThemeProvider>
