@@ -362,6 +362,8 @@ html.light {
   .report-band-inner { padding: 26px 20px; gap: 20px; }
   .report-band h1 { font-size: 34px; }
   .report-lead { font-size: 17px; line-height: 1.55; }
+  /* On a phone the figures come first; the case study stays one tap away in the bar. */
+  .glance { display: none; }
 }
 
 /* Panel headings in the display serif, figures stay in Plex Mono. */
