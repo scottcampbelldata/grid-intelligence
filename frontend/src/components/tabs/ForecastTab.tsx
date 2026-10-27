@@ -155,7 +155,7 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
           role="status"
           className="mb-6 rounded-sm border border-border bg-surface px-5 py-3 text-sm text-muted"
         >
-          Couldn&apos;t load {failedBas.join(", ")} - showing the rest.
+          Couldn&apos;t load {failedBas.join(", ")}. Showing the rest.
         </div>
       )}
 

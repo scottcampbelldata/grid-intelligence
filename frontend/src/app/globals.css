@@ -343,20 +343,20 @@ html.light {
 
 /* Title band and summary aside, as on the scottcampbell.io project pages. */
 .report-band { background: var(--pp-tint); border-bottom: 1px solid var(--pp-rule); }
-.report-band-inner { margin: 0 auto; padding: 40px 24px 36px; display: grid; gap: 26px; }
+.report-band-inner { margin: 0 auto; padding: 28px 24px 26px; display: grid; gap: 22px; }
 @media (min-width: 901px) {
-  .report-band-inner { grid-template-columns: minmax(0, 1fr) 420px; gap: 56px; align-items: start; }
+  .report-band-inner { grid-template-columns: minmax(0, 1fr) 460px; gap: 56px; align-items: start; }
 }
 .report-kicker { font-style: italic; font-size: 16px; color: var(--pp-sec); }
 .report-band h1 {
   font-family: var(--font-display); font-weight: 400;
-  font-size: clamp(38px, 4.4vw, 54px); line-height: 1.06; letter-spacing: -0.01em;
+  font-size: clamp(34px, 3.6vw, 46px); line-height: 1.06; letter-spacing: -0.01em;
   color: var(--pp-ink); margin: 4px 0 0;
 }
 .report-lead { margin-top: 14px; max-width: 640px; font-size: 19px; line-height: 1.6; color: var(--pp-ink); }
-.glance { background: var(--pp-panel); border: 1px solid var(--pp-rule); border-radius: 2px; padding: 18px 22px 4px; margin: 0; }
+.glance { background: var(--pp-panel); border: 1px solid var(--pp-rule); border-radius: 2px; padding: 14px 20px 2px; margin: 0; }
 .glance dt { font-style: italic; font-size: 15px; color: var(--pp-sec); }
-.glance dd { margin: 2px 0 14px; font-size: 17px; line-height: 1.5; color: var(--pp-ink); }
+.glance dd { margin: 1px 0 10px; font-size: 16px; line-height: 1.5; color: var(--pp-ink); }
 .glance a { color: var(--pp-accent); text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 600px) {
   .report-band-inner { padding: 26px 20px; gap: 20px; }

@@ -155,7 +155,7 @@ export function WeatherTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
             <>
               <p className="mb-4 max-w-2xl text-xs text-muted">
                 NOAA gridpoint forecast at each balancing-authority centroid, colored
-                by temperature - these are predicted conditions, not current
+                by temperature. These are predicted conditions, not current
                 observations. Hover a point for detail.
               </p>
               <WeatherMap stations={stations} />

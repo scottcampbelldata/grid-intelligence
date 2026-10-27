@@ -154,7 +154,7 @@ export function EuropeWeatherTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
 
       <div className="mt-6">
         <Panel
-          title="Europe - weather forecast by bidding-zone centroid"
+          title="Europe weather forecast by bidding-zone centroid"
           right={<span>Open-Meteo forecast · future-dated</span>}
         >
           {isEmpty ? (
@@ -163,7 +163,7 @@ export function EuropeWeatherTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
             <>
               <p className="mb-4 max-w-2xl text-xs text-muted">
                 Open-Meteo forecast at each European bidding-zone centroid, colored by
-                temperature - these are predicted conditions, not current observations.
+                temperature. These are predicted conditions, not current observations.
                 Hover a point for detail.
               </p>
               <EuropeWeatherMap stations={zones} />

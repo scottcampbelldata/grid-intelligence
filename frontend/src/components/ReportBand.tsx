@@ -8,7 +8,7 @@ export function ReportBand() {
       <div className="report-band-inner">
         <div>
           <div className="report-kicker">Live energy analytics dashboard</div>
-          <h1>Grid Intelligence</h1>
+          <h1>Grid intelligence</h1>
           <p className="report-lead">
             A live view of the US and European electricity grids, built from
             public EIA, ENTSO-E and NOAA data. Demand, generation mix,

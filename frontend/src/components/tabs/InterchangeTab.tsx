@@ -130,7 +130,7 @@ export function InterchangeTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
               loading={false}
               minHeight={280}
               empty="No recent interchange data"
-              emptyDetail="EIA publishes interchange with roughly a 29-hour lag. Even across the last 3 days nothing has been released yet - this will populate once EIA publishes the data."
+              emptyDetail="EIA publishes interchange with roughly a 29-hour lag. Even across the last 3 days nothing has been released yet. It will populate once EIA publishes the data."
             />
           </Panel>
         </div>
