@@ -15,8 +15,8 @@ interface Props {
 
 export function KpiCard({ label, value, unit, sub, loading = false, spark }: Props) {
   return (
-    <div className="group rounded-md border border-border bg-surface px-5 py-4 shadow-card transition-colors hover:border-border/80 hover:bg-surface-hover">
-      <div className="text-xs uppercase tracking-[0.12em] text-muted">{label}</div>
+    <div className="group rounded-sm border border-border bg-surface px-5 py-4 transition-colors hover:border-border/80 hover:bg-surface-hover">
+      <div className="text-sm text-muted">{label}</div>
 
       {loading ? (
         // Skeleton sized to the eventual numeral so the card doesn't resize on
@@ -31,7 +31,7 @@ export function KpiCard({ label, value, unit, sub, loading = false, spark }: Pro
         <>
           <div className="mt-3 flex items-end justify-between gap-3">
             <div className="flex items-baseline">
-              <span className="font-mono text-[2rem] font-medium leading-none tracking-[-0.02em] tabular-nums text-text">
+              <span className="font-mono text-[2rem] font-normal leading-none tracking-[-0.02em] tabular-nums text-text">
                 {value}
               </span>
               {unit && <span className="ml-1.5 text-sm font-normal text-muted">{unit}</span>}
@@ -40,7 +40,7 @@ export function KpiCard({ label, value, unit, sub, loading = false, spark }: Pro
               <Sparkline values={spark} className="mb-0.5 shrink-0 text-accent opacity-90" />
             )}
           </div>
-          <div className="mt-2 h-4 text-xs text-muted">{sub}</div>
+          <div className="mt-2 min-h-[1.25rem] text-sm text-muted">{sub}</div>
         </>
       )}
     </div>

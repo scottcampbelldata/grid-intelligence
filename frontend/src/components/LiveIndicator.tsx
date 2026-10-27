@@ -15,7 +15,7 @@ export function LiveIndicator({ status }: { status: Freshness }) {
   const s = STYLES[status];
   return (
     <span
-      className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-muted"
+      className="inline-flex items-center gap-2 text-sm text-muted"
       role="status"
       aria-live="polite"
       aria-label={`Connection status: ${s.label}`}

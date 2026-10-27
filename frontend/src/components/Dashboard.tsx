@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { AppHeader } from "./AppHeader";
+import { SiteBar, ConsultFooter } from "./SiteFrame";
+import { ReportBand, CASE_STUDY, REPO } from "./ReportBand";
 import { TabNav, TABS, tabId, tabPanelId, type TabName } from "./TabNav";
 import { DemandTab } from "./tabs/DemandTab";
 import { GenerationTab } from "./tabs/GenerationTab";
@@ -36,6 +38,8 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-bg">
+      <SiteBar caseStudy={CASE_STUDY} repo={REPO} />
+      <ReportBand />
       <AppHeader lastUpdated={meta.lastUpdated} now={now} error={meta.error} />
       <TabNav active={active} enabled={ENABLED} onSelect={handleSelect} />
       <main>
@@ -58,6 +62,7 @@ export function Dashboard() {
         {active === "Operations" && <OperationsTab onMeta={setMeta} />}
       </div>
       </main>
+      <ConsultFooter caseStudy={CASE_STUDY} />
     </div>
   );
 }

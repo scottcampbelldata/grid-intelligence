@@ -78,7 +78,7 @@ function StatusBadge({ status }: { status: ValidationStatus | string }) {
   const color = statusColor(String(status));
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.06em]"
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
       style={{ color, borderColor: `${color}66`, backgroundColor: `${color}14` }}
     >
       <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />

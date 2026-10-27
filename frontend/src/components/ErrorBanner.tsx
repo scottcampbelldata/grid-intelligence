@@ -11,7 +11,7 @@ export function ErrorBanner({
   return (
     <div
       role="alert"
-      className="mb-6 flex items-center justify-between gap-4 rounded-md border border-border bg-surface px-5 py-3 text-sm"
+      className="mb-6 flex items-center justify-between gap-4 rounded-sm border border-border bg-surface px-5 py-3 text-sm"
     >
       <span className="text-muted">Couldn&apos;t reach the API - {error}</span>
       <button

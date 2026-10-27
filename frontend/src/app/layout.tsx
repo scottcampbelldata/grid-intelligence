@@ -1,23 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
-// Two families, two weights each - text in Inter, numerals in a mono for the
-// terminal feel. next/font self-hosts these at build time (export-safe).
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-mono",
-  display: "swap",
-});
+// Type follows scottcampbell.io: Source Serif 4 for text, Libertinus Serif
+// Display for headings, Plex Mono for figures. All self hosted from /fonts.
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://grid.scottcampbell.io"),
@@ -76,8 +62,8 @@ const JSON_LD = {
 export const viewport: Viewport = {
   // Match the browser UI (address bar) to the active theme.
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0d141c" },
-    { media: "(prefers-color-scheme: light)", color: "#f5f7f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#13191b" },
+    { media: "(prefers-color-scheme: light)", color: "#fdfdfc" },
   ],
   colorScheme: "light dark",
 };
@@ -91,8 +77,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preload" href="/fonts/source-serif-4-text.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/libertinus-serif-display-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       </head>
       <body>

@@ -36,22 +36,22 @@ export interface ThemeColors {
 }
 
 const DARK: ThemeColors = {
-  bg: "#0d141c",
-  surface: "#141f2a",
-  border: "#293a4a",
-  grid: "#1b2936",
-  muted: "#9aa8b8",
-  text: "#e9edf2",
-  accent: "#91b4ef",
+  bg: "#13191b",
+  surface: "#182023",
+  border: "#2b3539",
+  grid: "#222c30",
+  muted: "#a6b4b9",
+  text: "#e6ecee",
+  accent: "#8cc1d6",
   accentLine: "#c7ccd6",
   overlay: {
-    band: "rgba(145,180,239,0.18)",
-    barCursor: "rgba(145,180,239,0.06)",
+    band: "rgba(140,193,214,0.18)",
+    barCursor: "rgba(140,193,214,0.06)",
   },
   map: {
-    land: "#272d3a",
+    land: "#26302f",
     landStroke: "#5b6575",
-    markerStroke: "#10131a",
+    markerStroke: "#13191b",
     markerActiveStroke: "#e5e7eb",
     nullFill: "#6b7280",
   },
@@ -73,21 +73,21 @@ const DARK: ThemeColors = {
 const LIGHT: ThemeColors = {
   bg: "#ffffff", // tooltips read as white cards on paper
   surface: "#ffffff",
-  border: "#d7dde4",
-  grid: "#edf1f5",
-  muted: "#546274",
-  text: "#161f2c",
-  accent: "#2456a6",
+  border: "#d9dfe0",
+  grid: "#e6eaeb",
+  muted: "#4d5d63",
+  text: "#1b2a30",
+  accent: "#28566b",
   accentLine: "#9aa0ac", // neutral grey realized-history line on white
   overlay: {
-    band: "rgba(36,86,166,0.14)",
-    barCursor: "rgba(36,86,166,0.07)",
+    band: "rgba(40,86,107,0.14)",
+    barCursor: "rgba(40,86,107,0.07)",
   },
   map: {
-    land: "#eceae3", // land lifted just off the white panel
-    landStroke: "#c4bfb3",
+    land: "#e9eeef", // land lifted just off the white panel
+    landStroke: "#b9c4c7",
     markerStroke: "#ffffff", // light ring separates a dot from the land
-    markerActiveStroke: "#1a1d23",
+    markerActiveStroke: "#1b2a30",
     nullFill: "#9ca3af",
   },
   status: STATUS_LIGHT,

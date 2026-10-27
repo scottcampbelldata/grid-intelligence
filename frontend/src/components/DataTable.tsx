@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 
-// Reusable executive-style table: muted uppercase headers, hairline dividers,
+// Reusable executive-style table: muted headers, hairline dividers,
 // row hover, right-aligned numeric columns. Columns that supply `sortValue`
 // become clickable to sort; sorting is handled internally. Used by Interchange,
 // Anomalies, Weather, and Operations.
@@ -86,7 +86,7 @@ export function DataTable<T>({ columns, rows, rowKey, initialSort }: Props<T>) {
                         }
                       : undefined
                   }
-                  className={`whitespace-nowrap px-3 py-2 text-xs font-normal uppercase tracking-[0.08em] ${
+                  className={`whitespace-nowrap px-3 py-2 text-xs font-normal ${
                     c.align === "right" ? "text-right" : "text-left"
                   } ${
                     sortable

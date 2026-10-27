@@ -30,8 +30,8 @@ const MAX_COMPARE = 3; // forecast overlays get busy fast - cap tighter than Dem
 // One source's backtest metrics (our SARIMAX or EIA's day-ahead benchmark).
 function AccuracyBlock({ src }: { src: AccuracySource }) {
   return (
-    <div className="rounded-md border border-border bg-bg px-5 py-4">
-      <div className="text-xs uppercase tracking-[0.12em] text-muted">{src.label}</div>
+    <div className="rounded-sm border border-border bg-bg px-5 py-4">
+      <div className="text-xs text-muted">{src.label}</div>
       <div className="mt-3 flex items-baseline gap-1.5">
         <span className="font-mono text-[1.75rem] font-medium leading-none tabular-nums text-text">
           {src.mapePct != null ? src.mapePct.toFixed(2) : "-"}
@@ -153,14 +153,14 @@ export function ForecastTab({ onMeta }: { onMeta: (m: TabMeta) => void }) {
       {!error && failedBas.length > 0 && (
         <div
           role="status"
-          className="mb-6 rounded-md border border-border bg-surface px-5 py-3 text-sm text-muted"
+          className="mb-6 rounded-sm border border-border bg-surface px-5 py-3 text-sm text-muted"
         >
           Couldn&apos;t load {failedBas.join(", ")} - showing the rest.
         </div>
       )}
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <span className="text-xs uppercase tracking-[0.12em] text-muted">
+        <span className="text-xs text-muted">
           Balancing {bas.length > 1 ? "authorities" : "authority"}
         </span>
         <BaCompareSelect

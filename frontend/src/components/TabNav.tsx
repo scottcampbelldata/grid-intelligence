@@ -96,7 +96,7 @@ export function TabNav({ active, enabled, onSelect }: Props) {
               tabIndex={isActive ? 0 : -1}
               disabled={!isEnabled}
               onClick={() => isEnabled && onSelect(tab)}
-              className={`relative whitespace-nowrap px-3 py-3 text-sm transition-colors ${
+              className={`relative whitespace-nowrap px-3 py-3 text-base transition-colors ${
                 isActive
                   ? "text-text"
                   : isEnabled
